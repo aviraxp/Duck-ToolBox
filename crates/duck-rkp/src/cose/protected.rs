@@ -229,25 +229,20 @@ fn parse_p256_public_key(public_key_bytes: &[u8]) -> Result<P256PublicKey> {
     P256PublicKey::from_sec1_bytes(&sec1).map_err(|_| anyhow!("parse P-256 EEK public key"))
 }
 
-/// HMAC-SHA256 tag over the COSE `MAC0` structure of `keys_to_sign`.
-///
-/// The tag is 32 bytes. CSR v1 puts this tag in the signed MAC's additional data;
-/// the MAC key itself stays in the signed payload, which the TA encrypts to the EEK.
+/// HMAC-SHA256 over the COSE MAC0 structure containing the requested public keys.
 pub fn key_mac_tag(mac_key: &[u8; 32], keys_to_sign: &[Value]) -> Result<[u8; 32]> {
     let encoded = encode(&Value::Array(keys_to_sign.to_vec()))?;
-    let tag = build_keys_to_sign_mac(mac_key, &encoded)?;
-    tag.try_into()
-        .map_err(|_| anyhow!("HMAC-SHA256 tag must be 32 bytes"))
+    build_keys_to_sign_mac(mac_key, &encoded)?
+        .try_into()
+        .map_err(|_| anyhow!("HMAC-SHA256 tag must contain 32 bytes"))
 }
 
-/// `COSE_Mac0` over the same key array, with `tag` as its HMAC-SHA256 value.
+/// Legacy COSE_Mac0 with the exact key-array payload used to calculate its tag.
 pub fn cose_mac0(keys_to_sign: &[Value], tag: &[u8; 32]) -> Result<Vec<u8>> {
-    let encoded = encode(&Value::Array(keys_to_sign.to_vec()))?;
-    let protected = encode(&Value::Map(vec![(int(1), int(ALG_HMAC_256))]))?;
     encode(&Value::Array(vec![
-        bytes(protected),
+        bytes(encode(&Value::Map(vec![(int(1), int(ALG_HMAC_256))]))?),
         empty_map(),
-        bytes(encoded),
+        bytes(encode(&Value::Array(keys_to_sign.to_vec()))?),
         bytes(tag.to_vec()),
     ]))
 }

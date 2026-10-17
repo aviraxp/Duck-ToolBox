@@ -24,46 +24,20 @@ use serde::Serialize;
 use crate::{
     artifacts::{self, ArtifactPaths, Artifacts, ChainSummary},
     error::DeviceRkpError,
-    protocol::{self, MAX_CERT_CHAIN_LEN},
+    issuance::{self, Exchange, Protocol},
+    protocol::MAX_CERT_CHAIN_LEN,
     status::{self, DeviceStatus, LIMITATIONS},
-    worker,
+    v1, worker,
 };
-
-/// Which TA command produces the CSR.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum CsrVersion {
-    /// KeyMint `CSR_V2`, command `0x3122`.
-    #[default]
-    V2,
-    /// Keymaster `generateCsr`, command `0x311e`.
-    V1,
-}
-
-impl CsrVersion {
-    pub(crate) fn number(self) -> u8 {
-        match self {
-            Self::V1 => 1,
-            Self::V2 => 2,
-        }
-    }
-
-    fn mode(self) -> &'static str {
-        match self {
-            Self::V1 => "device-ta-csr-v1",
-            Self::V2 => "device-ta-oracle",
-        }
-    }
-}
 
 /// Everything the caller can still adjust without touching KeyMint.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Options {
+    pub protocol: Protocol,
     /// Override the build fingerprint sent to `fetchEekChain`.
     pub fingerprint: Option<String>,
     /// Also write `keybox.xml` here, instead of only inside the timestamped run directory.
     pub output: Option<PathBuf>,
-    /// `V2` unless the device's trusted app only implements `generateCsr`.
-    pub csr_version: CsrVersion,
 }
 
 /// Where the key pair that ends up in `keysToSign` comes from. Production uses the OS
@@ -79,11 +53,6 @@ impl KeySource for RandomKeys {
     fn generate(&self) -> Result<EcKeyPair> {
         generate_ec_keypair()
     }
-}
-
-/// The vendor half of the round trip: one `CSR_V2` command in an isolated child process.
-pub(crate) trait Exchange {
-    fn csr(&self, request: &[u8]) -> Result<Vec<u8>>;
 }
 
 /// The capability report the run is gated on. Only tests replace it; the device answer
@@ -115,11 +84,18 @@ pub(crate) trait Server: Sync {
 /// The real vendor path. It runs inside a child process started from this binary.
 pub(crate) struct Device<'a> {
     pub paths: &'a AppPaths,
+    pub sysroot: &'a duck_core::Sysroot,
 }
 
 impl Exchange for Device<'_> {
     fn csr(&self, request: &[u8]) -> Result<Vec<u8>> {
         worker::sign(self.paths, request)
+    }
+    fn csr_v1(&self, request: &v1::Request) -> Result<v1::Response> {
+        let apk = v1::find_aidl_apk(self.sysroot).ok_or_else(|| {
+            DeviceRkpError::UnsupportedDevice("V1 AIDL APK is unavailable".into())
+        })?;
+        v1::sign(self.paths, &apk, request)
     }
 }
 
@@ -166,14 +142,12 @@ pub(crate) struct ProvisionData {
     pub limitations: [&'static str; 2],
     /// How the CSR was produced, so a report can tell a device run from an offline one.
     pub mode: &'static str,
-    /// `1` for Keymaster `generateCsr`, `2` for KeyMint `CSR_V2`.
-    pub csr_version: u8,
-    /// `false` for CSR v1: its device signature is encrypted to the server.
-    pub local_signature_checked: bool,
+    pub csr_protocol: Protocol,
+    pub csr_backend: issuance::Backend,
     pub fingerprint: String,
     pub challenge_hex: String,
     pub csr_len: usize,
-    pub local_verify: VerifyReport,
+    pub local_verify: Option<VerifyReport>,
     pub chain: ChainSummary,
     pub device_id: String,
     pub keybox_xml: String,
@@ -207,8 +181,9 @@ pub(crate) async fn provision(
             .retain(|blocker| *blocker != "fingerprint_missing");
         prerequisites.prerequisites_met = prerequisites.blockers.is_empty();
     }
-    if !prerequisites.prerequisites_met {
-        return Err(DeviceRkpError::UnsupportedDevice(prerequisites.blockers.join(", ")).into());
+    let blockers = issuance::blockers_for(&prerequisites, options.protocol);
+    if !blockers.is_empty() {
+        return Err(DeviceRkpError::UnsupportedDevice(blockers.join(", ")).into());
     }
 
     let fingerprint = explicit_fingerprint
@@ -217,18 +192,16 @@ pub(crate) async fn provision(
     let key = key_source.generate()?;
     let eek = server.challenge(&fingerprint).await?;
 
-    let (csr, local_verify) = match options.csr_version {
-        CsrVersion::V2 => sign_v2(exchange, &eek, &key)?,
-        CsrVersion::V1 => sign_v1(exchange, &eek, &key)?,
-    };
+    let signed = issuance::issue(options.protocol, &prerequisites, exchange, &key, &eek)?;
+    let csr = &signed.bytes;
 
-    let chains = server.certificates(&csr, &eek.challenge).await?;
+    let chains = server.certificates(csr, &eek.challenge).await?;
     let chain_der = single_chain(&chains)?;
     let mut artifacts = artifacts::write(
         &ctx.paths,
         artifacts::Inputs {
             secret_key: &key.secret_key,
-            csr: &csr,
+            csr,
             cert_chain_der: &chain_der,
             manufacturer: &prerequisites.soc_manufacturer,
         },
@@ -238,74 +211,26 @@ pub(crate) async fn provision(
         artifacts.paths.keybox_path = path.display().to_string();
     }
 
-    Ok(report(
-        options.csr_version,
-        &fingerprint,
-        &eek,
-        &csr,
-        local_verify,
-        artifacts,
-        prerequisites,
-    ))
-}
-
-fn sign_v2(
-    exchange: &dyn Exchange,
-    eek: &EekResponse,
-    key: &duck_rkp::cose::EcKeyPair,
-) -> Result<(Vec<u8>, VerifyReport)> {
-    let request = protocol::build_request(&eek.challenge, &key.cose_public)?;
-    let signed = exchange.csr(&request)?;
-    let csr = protocol::unwrap_csr(&signed)?;
-    let local_verify = protocol::validate_csr(&csr, &eek.challenge, &key.cose_public)?;
-    Ok((csr, local_verify))
-}
-
-fn sign_v1(
-    exchange: &dyn Exchange,
-    eek: &EekResponse,
-    key: &duck_rkp::cose::EcKeyPair,
-) -> Result<(Vec<u8>, VerifyReport)> {
-    if eek.eek_chain.is_empty() {
-        return Err(DeviceRkpError::InvalidCsr(
-            "fetchEekChain did not include an EEK certificate chain".into(),
-        )
-        .into());
-    }
-    let mac_key = crate::protocol_v1::new_mac_key()?;
-    let material = crate::protocol_v1::mac_material(&mac_key, &key.cose_public)?;
-    let request = crate::protocol_v1::build_v1_request(&eek.challenge, &material, &eek.eek_chain)?;
-    let payload = exchange.csr(&request)?;
-    let parts = crate::protocol_v1::parse_v1_response(&payload)?;
-    let local_verify = crate::protocol_v1::v1_report(&parts)?;
-    let csr = crate::protocol_v1::assemble_v1_csr(
-        &parts,
-        &eek.challenge,
-        &key.cose_public,
-        &material.mac_tag,
-    )?;
-    Ok((csr, local_verify))
+    Ok(report(&fingerprint, &eek, signed, artifacts, prerequisites))
 }
 
 fn report(
-    version: CsrVersion,
     fingerprint: &str,
     eek: &EekResponse,
-    csr: &[u8],
-    local_verify: VerifyReport,
+    signed: issuance::SignedCsr,
     artifacts: Artifacts,
     prerequisites: DeviceStatus,
 ) -> ProvisionData {
     ProvisionData {
         acknowledged_limitations: true,
         limitations: LIMITATIONS,
-        mode: version.mode(),
-        csr_version: version.number(),
-        local_signature_checked: version == CsrVersion::V2,
+        mode: "device-ta-oracle",
+        csr_protocol: signed.protocol,
+        csr_backend: signed.backend,
         fingerprint: fingerprint.to_owned(),
         challenge_hex: eek.challenge_hex.clone(),
-        csr_len: csr.len(),
-        local_verify,
+        csr_len: signed.bytes.len(),
+        local_verify: signed.local_verify,
         chain: ChainSummary::of(&artifacts.chain),
         device_id: artifacts.device_id.clone(),
         keybox_xml: artifacts.keybox_xml.clone(),

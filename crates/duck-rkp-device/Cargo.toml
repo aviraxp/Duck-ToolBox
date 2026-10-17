@@ -17,6 +17,7 @@ duck-platform.workspace = true
 duck-rkp.workspace = true
 getrandom.workspace = true
 hex.workspace = true
+hkdf.workspace = true
 libc.workspace = true
 libloading.workspace = true
 p256.workspace = true
@@ -24,6 +25,7 @@ pkcs8.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
 x509-cert.workspace = true
@@ -32,7 +34,6 @@ x509-cert.workspace = true
 ciborium.workspace = true
 duck-tricky-store.workspace = true
 rcgen.workspace = true
-sha2.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]

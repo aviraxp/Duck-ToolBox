@@ -124,6 +124,6 @@ fn local_test_eek() -> anyhow::Result<EekResponse> {
         eek_public: public_key.as_bytes().to_vec(),
         eek_id: Vec::new(),
         eek_curve: RPC_CURVE_25519,
-        eek_chain: Vec::new(),
+        eek_chains: Vec::new(),
     })
 }

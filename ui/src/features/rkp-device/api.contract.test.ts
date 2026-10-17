@@ -23,17 +23,20 @@ describe.skipIf(!hasDuckd)("device RKP API against the real duckd", CONTRACT, ()
     expect(status.limitations).toEqual(["partial_device_support", "rkp_only"])
   })
 
-  it("sends the acknowledgement and reports unmet device prerequisites", async () => {
-    host = installHost({ props: DEVICE_PROPS })
+  it.each(["auto", "v1", "v2", "v1-native"] as const)(
+    "sends acknowledgement and protocol %s",
+    async (protocol) => {
+      host = installHost({ props: DEVICE_PROPS })
 
-    const error = await rkpDeviceApi.provision().catch((caught: unknown) => caught)
+      const error = await rkpDeviceApi.provision(protocol).catch((caught: unknown) => caught)
 
-    // The API always sends the flag, so on a host the failure is the device gate, not a
-    // usage error; the important part is that the envelope still matches the contract.
-    expect(isDuckError(error)).toBe(true)
-    expect(error).not.toMatchObject({ code: "contract_mismatch" })
-    expect(error).toMatchObject({ code: "unsupported_device" })
-  })
+      // The API always sends the flag, so on a host the failure is the device gate, not a
+      // usage error; the important part is that the envelope still matches the contract.
+      expect(isDuckError(error)).toBe(true)
+      expect(error).not.toMatchObject({ code: "contract_mismatch" })
+      expect(error).toMatchObject({ code: "unsupported_device" })
+    },
+  )
 
   it.each([
     {

@@ -8,7 +8,7 @@
     "title": "Sebelum melanjutkan"
   },
   "limitations": {
-    "partial_device_support": "Hanya berfungsi di sebagian perangkat. Firmware Qualcomm KeyMint, akses root, /dev/smcinvoke, dan libkeymasterdeviceutils.so semuanya diperlukan, namun ABI vendor tetap bisa berbeda.",
+    "partial_device_support": "Hanya berfungsi di sebagian perangkat. V1 AIDL memerlukan app_process dan APK RKP AIDL perangkat. V2 memerlukan /dev/smcinvoke dan libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 adalah jalur cadangan manual dan memerlukan sumber daya vendor yang sama dengan V2.",
     "rkp_only": "Hanya sertifikat RKP yang dapat diterbitkan. Perangkat yang kompatibel diperlukan untuk mendapatkan CSR bertanda tangan. Kunci privat yang diekspor dibuat oleh perangkat lunak; tidak ada kunci privat yang diambil dari TEE."
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "Produsen SoC selain Qualcomm teridentifikasi; operasi ini memerlukan Qualcomm KeyMint.",
     "fingerprint_missing": "Sidik jari build tidak ada, sehingga server tidak dapat mengikat challenge.",
     "soc_vendor_unknown": "Produsen SoC tidak dapat diidentifikasi dari properti lokal atau informasi kernel.",
-    "soc_vendor_conflict": "Informasi SoC lokal bertentangan. Periksa bukti identifikasi sebelum melanjutkan."
+    "soc_vendor_conflict": "Informasi SoC lokal bertentangan. Periksa bukti identifikasi sebelum melanjutkan.",
+    "v1_unavailable": "V1 memerlukan app_process dan APK RKP AIDL perangkat.",
+    "v2_unavailable": "V2 memerlukan /dev/smcinvoke dan libkeymasterdeviceutils.so.",
+    "v1_native_unavailable": "V1 Native memerlukan /dev/smcinvoke dan libkeymasterdeviceutils.so."
   },
   "run": {
     "provision": "Terbitkan keybox RKP",
@@ -55,15 +58,9 @@
     "fingerprint": "Sidik jari",
     "challenge": "Challenge",
     "csr": "CSR",
-    "csrVersion": "Versi CSR",
-    "path": "Jalur CSR",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 memakai perintah generateCsr Keymaster yang lebih lama. v2 memakai perintah CSR_V2 KeyMint. Pilih jalur yang diterima aplikasi tepercaya perangkat ini.",
     "localVerify": "Verifikasi lokal",
     "valid": "Valid",
     "invalid": "Tidak valid",
-    "notChecked": "Hanya struktur. Tanda tangan perangkat dienkripsi untuk server dan tidak diperiksa di sini.",
     "certificates": "Sertifikat",
     "deviceId": "ID perangkat",
     "keybox": "Berkas keybox",
@@ -73,11 +70,15 @@
     "installed": "Keybox dipasang ke {target}",
     "backup": "Berkas sebelumnya dicadangkan ke {path}.",
     "onlyRkp": "Sertifikat RKP",
-    "onlyRkpHint": "Rantai ini ditandatangani Google untuk kunci di berkas keybox. Simpan berkas kunci privat: tanpa itu keybox tidak berguna."
+    "onlyRkpHint": "Rantai ini ditandatangani Google untuk kunci di berkas keybox. Simpan berkas kunci privat: tanpa itu keybox tidak berguna.",
+    "protocol": "Protokol",
+    "auto": "Otomatis (V2 → V1)",
+    "structureOnly": "Struktur diperiksa; bukti terenkripsi diverifikasi oleh server",
+    "backend": "Backend"
   },
   "confirm": {
     "title": "Kirim permintaan ke KeyMint TA?",
-    "body": "Mengirim jalur CSR yang dipilih ke aplikasi tepercaya Qualcomm Keymaster atau KeyMint di perangkat ini, lalu mengirim hasilnya ke Google. v1 adalah perintah generateCsr yang lama; v2 adalah perintah KeyMint yang lebih baru. Hanya berfungsi di sebagian perangkat dan hanya dapat menerbitkan sertifikat RKP. Berkas yang diekspor berisi kunci privat; jaga kerahasiaannya. Lanjutkan?"
+    "body": "Ini menjalankan RKP (V1 / V2) pada aplikasi tepercaya Qualcomm KeyMint di perangkat lalu mengirim hasilnya ke Google. Hanya berfungsi di sebagian perangkat dan hanya menerbitkan sertifikat RKP. Berkas yang diekspor berisi kunci privat; simpan dengan aman. Lanjutkan?"
   },
   "errors": {
     "acknowledgement_required": "Batasan belum disetujui.",

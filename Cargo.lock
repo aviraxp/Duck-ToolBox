@@ -666,6 +666,7 @@ dependencies = [
  "duck-tricky-store",
  "getrandom 0.4.3",
  "hex",
+ "hkdf",
  "libc",
  "libloading",
  "p256",

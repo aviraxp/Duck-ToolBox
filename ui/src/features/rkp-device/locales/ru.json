@@ -8,7 +8,7 @@
     "title": "Перед продолжением"
   },
   "limitations": {
-    "partial_device_support": "Работает только на части устройств. Нужны прошивка Qualcomm KeyMint, root-доступ, /dev/smcinvoke и libkeymasterdeviceutils.so, но даже тогда вендорский ABI может отличаться.",
+    "partial_device_support": "Работает только на части устройств. Для V1 AIDL нужны app_process и APK RKP AIDL этого устройства. Для V2 нужны /dev/smcinvoke и libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 — резервный путь с ручным выбором; ему нужны те же ресурсы производителя, что и V2.",
     "rkp_only": "Можно выпускать только сертификаты RKP. Для получения подписанного CSR требуется совместимое устройство. Экспортируемый закрытый ключ создаётся программно; закрытые ключи из TEE не извлекаются."
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "Определён производитель SoC, отличный от Qualcomm; эта операция требует Qualcomm KeyMint.",
     "fingerprint_missing": "Нет отпечатка сборки, поэтому сервер не может привязать challenge.",
     "soc_vendor_unknown": "Не удалось определить производителя SoC по локальным свойствам и данным ядра.",
-    "soc_vendor_conflict": "Локальные сведения о SoC противоречат друг другу. Проверьте источники перед продолжением."
+    "soc_vendor_conflict": "Локальные сведения о SoC противоречат друг другу. Проверьте источники перед продолжением.",
+    "v1_unavailable": "Для V1 нужны app_process и APK RKP AIDL этого устройства.",
+    "v2_unavailable": "Для V2 нужны /dev/smcinvoke и libkeymasterdeviceutils.so.",
+    "v1_native_unavailable": "Для V1 Native нужны /dev/smcinvoke и libkeymasterdeviceutils.so."
   },
   "run": {
     "provision": "Выпустить RKP keybox",
@@ -55,15 +58,9 @@
     "fingerprint": "Отпечаток",
     "challenge": "Challenge",
     "csr": "CSR",
-    "csrVersion": "Версия CSR",
-    "path": "Путь CSR",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 — старая команда Keymaster generateCsr. v2 — команда KeyMint CSR_V2. Выберите путь, который принимает доверенное приложение этого устройства.",
     "localVerify": "Локальная проверка",
     "valid": "Действителен",
     "invalid": "Недействителен",
-    "notChecked": "Только структура. Подпись устройства зашифрована для сервера и здесь не проверяется.",
     "certificates": "Сертификатов",
     "deviceId": "ID устройства",
     "keybox": "Файл keybox",
@@ -73,11 +70,15 @@
     "installed": "Keybox установлен в {target}",
     "backup": "Предыдущий файл сохранён в {path}.",
     "onlyRkp": "Сертификат RKP",
-    "onlyRkpHint": "Эту цепочку Google подписал для ключа из файла keybox. Сохраните файл закрытого ключа: без него keybox бесполезен."
+    "onlyRkpHint": "Эту цепочку Google подписал для ключа из файла keybox. Сохраните файл закрытого ключа: без него keybox бесполезен.",
+    "protocol": "Протокол",
+    "auto": "Автоматически (V2 → V1)",
+    "structureOnly": "Структура проверена; зашифрованные данные проверяет сервер",
+    "backend": "Бэкенд"
   },
   "confirm": {
     "title": "Отправить запрос в KeyMint TA?",
-    "body": "Отправляет выбранный путь CSR доверенному приложению Qualcomm Keymaster или KeyMint этого устройства и передаёт результат Google. v1 — старая команда generateCsr, v2 — более новая команда KeyMint. Работает только на некоторых устройствах и выдаёт только сертификаты RKP. Экспортированные файлы содержат закрытый ключ; храните их в тайне. Продолжить?"
+    "body": "Будет выполнен RKP (V1 / V2) в доверенном приложении Qualcomm KeyMint на устройстве, а результат отправлен в Google. Работает только на части устройств и выпускает только сертификаты RKP. Экспортированные файлы содержат закрытый ключ; храните их в безопасности. Продолжить?"
   },
   "errors": {
     "acknowledgement_required": "Ограничения не подтверждены.",

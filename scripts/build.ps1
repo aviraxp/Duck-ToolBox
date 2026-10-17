@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [string]$NdkRoot = $(if ($env:ANDROID_NDK_HOME) { $env:ANDROID_NDK_HOME } else { "C:\Development\Android\NDK\android-ndk-r30" }),
+  [string]$SdkRoot = $(if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { $env:ANDROID_SDK_ROOT }),
   [ValidateSet("debug", "release")]
   [string]$Profile = "release",
   [string]$AndroidAbi = "arm64-v8a",
@@ -43,6 +44,10 @@ function Invoke-Checked([scriptblock]$Action, [string]$FailureMessage) {
 }
 
 if (-not $SkipRust) {
+  if (-not $SdkRoot -or -not (Test-Path $SdkRoot)) {
+    throw "Set ANDROID_HOME or pass -SdkRoot with Android SDK Build Tools 36.0.0 installed."
+  }
+  $env:ANDROID_HOME = $SdkRoot
   Assert-Command "cargo" "Install Rust via rustup before running this script."
   Assert-Command "rustup" "Install Rust via rustup before running this script."
 

@@ -8,7 +8,7 @@
     "title": "Avant de continuer"
   },
   "limitations": {
-    "partial_device_support": "Cela ne fonctionne que sur certains appareils. Le firmware KeyMint Qualcomm, l'accès root, /dev/smcinvoke et libkeymasterdeviceutils.so sont tous nécessaires, et malgré cela l'ABI constructeur peut différer.",
+    "partial_device_support": "Cela ne fonctionne que sur certains appareils. V1 AIDL nécessite app_process et l’APK AIDL RKP de cet appareil. V2 nécessite /dev/smcinvoke et libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 est une solution de secours manuelle qui nécessite les mêmes ressources constructeur que V2.",
     "rkp_only": "Seuls des certificats RKP peuvent être délivrés. Un appareil compatible est nécessaire pour obtenir le CSR signé. La clé privée exportée est générée par logiciel ; aucune clé privée n’est extraite du TEE."
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "Un fabricant autre que Qualcomm a été identifié ; cette opération nécessite Qualcomm KeyMint.",
     "fingerprint_missing": "L'empreinte de build est absente, le serveur ne peut donc pas lier de challenge.",
     "soc_vendor_unknown": "Les propriétés locales et le noyau ne permettent pas d’identifier le fabricant du SoC.",
-    "soc_vendor_conflict": "Les informations locales du SoC se contredisent. Vérifiez les sources avant de continuer."
+    "soc_vendor_conflict": "Les informations locales du SoC se contredisent. Vérifiez les sources avant de continuer.",
+    "v1_unavailable": "V1 nécessite app_process et l’APK AIDL RKP de cet appareil.",
+    "v2_unavailable": "V2 nécessite /dev/smcinvoke et libkeymasterdeviceutils.so.",
+    "v1_native_unavailable": "V1 Native nécessite /dev/smcinvoke et libkeymasterdeviceutils.so."
   },
   "run": {
     "provision": "Émettre le keybox RKP",
@@ -55,15 +58,9 @@
     "fingerprint": "Empreinte",
     "challenge": "Challenge",
     "csr": "CSR",
-    "csrVersion": "Version de CSR",
-    "path": "Chemin CSR",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 utilise l’ancienne commande generateCsr de Keymaster. v2 utilise la commande CSR_V2 de KeyMint. Choisissez le chemin accepté par l’application de confiance de cet appareil.",
     "localVerify": "Vérification locale",
     "valid": "Valide",
     "invalid": "Invalide",
-    "notChecked": "Structure seulement. La signature de l’appareil est chiffrée pour le serveur et n’est pas vérifiée ici.",
     "certificates": "Certificats",
     "deviceId": "ID de l'appareil",
     "keybox": "Fichier keybox",
@@ -73,11 +70,15 @@
     "installed": "Keybox installé vers {target}",
     "backup": "Le fichier précédent a été sauvegardé vers {path}.",
     "onlyRkp": "Certificat RKP",
-    "onlyRkpHint": "Cette chaîne a été signée par Google pour la clé du fichier keybox. Conservez le fichier de clé privée : sans lui le keybox est inutilisable."
+    "onlyRkpHint": "Cette chaîne a été signée par Google pour la clé du fichier keybox. Conservez le fichier de clé privée : sans lui le keybox est inutilisable.",
+    "protocol": "Protocole",
+    "auto": "Automatique (V2 → V1)",
+    "structureOnly": "Structure vérifiée ; les preuves chiffrées sont vérifiées par le serveur",
+    "backend": "Backend"
   },
   "confirm": {
     "title": "Envoyer une requête au KeyMint TA ?",
-    "body": "Envoie le chemin CSR choisi à l’application de confiance Keymaster ou KeyMint Qualcomm de cet appareil, puis soumet le résultat à Google. v1 est l’ancienne commande generateCsr ; v2 est la commande KeyMint plus récente. Cela ne fonctionne que sur certains appareils et seuls des certificats RKP peuvent être émis. Les fichiers exportés contiennent une clé privée ; gardez-les privés. Continuer ?"
+    "body": "Cela exécute RKP (V1 / V2) sur l'application de confiance KeyMint Qualcomm de l'appareil et envoie le résultat à Google. Cela ne fonctionne que sur certains appareils et n'émet que des certificats RKP. Les fichiers exportés contiennent une clé privée ; conservez-les en lieu sûr. Continuer ?"
   },
   "errors": {
     "acknowledgement_required": "Les limitations n'ont pas été acceptées.",

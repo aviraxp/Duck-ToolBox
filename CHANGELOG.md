@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Device RKP Issuer
+- Adds the explicit `v1-native` backup backend for vendor command `0x311e`, preserving
+  the AIDL V1 and V2 adapters and their automatic selection rules. Native V1 reuses the
+  V1 CSR assembler, structural checks and isolated worker, and does not require a system
+  AIDL APK at runtime. Firmware and server acceptance remain unverified.
+- Reports protocol and backend separately, exposes native V1 resource availability,
+  and uses feature contract 4 across the CLI and WebUI.
+- Adds the V1 AIDL signing oracle for Qualcomm PureSoft firmware with a zero HBK,
+  adapted from LazyBonesLZY/rkp-v1-oracle under its MIT license.
+- Adds automatic and explicit V1/V2 protocol selection. Automatic mode falls back
+  only on V2 TA status `-40`, or starts with V1 when V2 resources are unavailable.
+- Selects the full EEK chain for the HAL's reported curve and uses the device's AIDL
+  proxy in an isolated process, with bounded exchange files and timeout cleanup.
+- Reports V1 as structurally checked; encrypted signing evidence is verified by the
+  provisioning server. V2 retains local signature verification.
+
 ### TEE Attestation Extractor
 - New offline tool for extracting Keybox XML and PEM material from existing captures and
   verifying private-key correspondence, certificate signatures and chain completeness.
@@ -28,11 +44,6 @@
   failures (`126` or `127`).
 
 ### Device RKP Issuer
-- Adds a CSR v1 path for older Keymaster firmware. Command `0x311e` (`KEYMINT_GENERATE_CSR`)
-  sends the challenge, MAC key, MAC tag and EEK chain, then reads DeviceInfo and
-  ProtectedData. The server body is the legacy four-element certificate request. CSR v2
-  (`0x3122`) is unchanged. The v1 device signature is encrypted to the server and is not
-  checked locally. Feature contract 3.
 - Cross-checks Qualcomm aliases (including QTI/QCOM), SoC part numbers, hardware properties
   and kernel SoC information. Unknown and conflicting evidence have separate blockers;
   empty properties no longer imply support. The WebUI shows the evidence and keeps firmware

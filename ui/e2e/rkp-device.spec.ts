@@ -6,6 +6,65 @@ test.beforeEach(async ({ page }) => {
   )
 })
 
+test("explicit V1 issuance reports structural verification", async ({ page, open }) => {
+  await open("/rkp-device", { locale: "zh-CN" })
+  await page.getByRole("combobox", { name: "协议" }).click()
+  await page.getByRole("option", { name: "V1 AIDL", exact: true }).click()
+  await page.getByRole("button", { name: "签发 RKP keybox", exact: true }).click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "签发 RKP keybox", exact: true })
+    .click()
+  await expect(
+    page.getByText("仅结构校验；加密签名材料由服务器验证", { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText("V1", { exact: true })).toBeVisible()
+  await page.screenshot({ path: "test-results/rkp-device-v1-zh.png", fullPage: true })
+})
+
+test("automatic mode can issue on a V1-only device without V2 resources", async ({
+  page,
+  open,
+}) => {
+  await open("/rkp-device", { query: { rkp: "v1-only" } })
+  await expect(page.getByRole("button", { name: "Issue RKP keybox", exact: true })).toBeEnabled()
+  await page.getByRole("button", { name: "Issue RKP keybox", exact: true }).click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Issue RKP keybox", exact: true })
+    .click()
+  await expect(
+    page.getByText("Structure checked; encrypted evidence is verified by the server", {
+      exact: true,
+    }),
+  ).toBeVisible()
+})
+
+test("native V1 backup can be selected without an AIDL APK", async ({ page, open }) => {
+  await open("/rkp-device", { query: { rkp: "v2-only" } })
+  await page.getByRole("combobox", { name: "Protocol" }).click()
+  await expect(page.getByRole("option", { name: "V1 AIDL", exact: true })).toBeDisabled()
+  await page.getByRole("option", { name: "V1 Native (0x311e)", exact: true }).click()
+  await page.getByRole("button", { name: "Issue RKP keybox", exact: true }).click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Issue RKP keybox", exact: true })
+    .click()
+  await expect(page.getByText("V1", { exact: true })).toBeVisible()
+  await expect(page.getByText("Native", { exact: true })).toBeVisible()
+  await expect(
+    page.getByText("Structure checked; encrypted evidence is verified by the server", {
+      exact: true,
+    }),
+  ).toBeVisible()
+})
+
+test("native V1 is disabled when the vendor resources are missing", async ({ page, open }) => {
+  await open("/rkp-device", { query: { rkp: "v1-only" } })
+  await page.getByRole("combobox", { name: "Protocol" }).click()
+  await expect(page.getByRole("option", { name: "V1 Native (0x311e)", exact: true })).toBeDisabled()
+})
+
 test("identifies QTI and keeps firmware compatibility unverified", async ({ page, open }) => {
   await open("/rkp-device", { locale: "zh-CN" })
   await expect(page.getByText("QTI", { exact: true }).first()).toBeVisible()

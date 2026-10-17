@@ -8,7 +8,7 @@
     "title": "Trước khi tiếp tục"
   },
   "limitations": {
-    "partial_device_support": "Chỉ chạy trên một số thiết bị. Cần firmware KeyMint Qualcomm, quyền root, /dev/smcinvoke và libkeymasterdeviceutils.so, nhưng ngay cả vậy ABI của nhà sản xuất vẫn có thể khác.",
+    "partial_device_support": "Chỉ chạy trên một số thiết bị. V1 AIDL cần app_process và APK RKP AIDL của thiết bị. V2 cần /dev/smcinvoke và libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 là đường dẫn dự phòng chọn thủ công và cần cùng tài nguyên nhà cung cấp như V2.",
     "rkp_only": "Chỉ có thể cấp chứng chỉ RKP. Cần thiết bị tương thích để lấy CSR đã ký. Khoá riêng xuất ra được tạo bằng phần mềm; không trích xuất khoá riêng từ TEE."
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "Đã nhận diện nhà sản xuất SoC không phải Qualcomm; thao tác này yêu cầu Qualcomm KeyMint.",
     "fingerprint_missing": "Thiếu vân tay bản dựng nên máy chủ không thể gắn challenge.",
     "soc_vendor_unknown": "Không thể nhận diện nhà sản xuất SoC từ thuộc tính cục bộ hoặc thông tin kernel.",
-    "soc_vendor_conflict": "Thông tin SoC cục bộ mâu thuẫn. Hãy kiểm tra căn cứ nhận diện trước khi tiếp tục."
+    "soc_vendor_conflict": "Thông tin SoC cục bộ mâu thuẫn. Hãy kiểm tra căn cứ nhận diện trước khi tiếp tục.",
+    "v1_unavailable": "V1 cần app_process và APK RKP AIDL của thiết bị.",
+    "v2_unavailable": "V2 cần /dev/smcinvoke và libkeymasterdeviceutils.so.",
+    "v1_native_unavailable": "V1 Native cần /dev/smcinvoke và libkeymasterdeviceutils.so."
   },
   "run": {
     "provision": "Phát keybox RKP",
@@ -55,15 +58,9 @@
     "fingerprint": "Vân tay",
     "challenge": "Challenge",
     "csr": "CSR",
-    "csrVersion": "Phiên bản CSR",
-    "path": "Đường dẫn CSR",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 dùng lệnh generateCsr cũ của Keymaster. v2 dùng lệnh CSR_V2 của KeyMint. Hãy chọn đường dẫn mà ứng dụng tin cậy của thiết bị này chấp nhận.",
     "localVerify": "Kiểm tra cục bộ",
     "valid": "Hợp lệ",
     "invalid": "Không hợp lệ",
-    "notChecked": "Chỉ kiểm tra cấu trúc. Chữ ký thiết bị được mã hóa cho máy chủ và không được kiểm tra ở đây.",
     "certificates": "Chứng chỉ",
     "deviceId": "ID thiết bị",
     "keybox": "Tệp keybox",
@@ -73,11 +70,15 @@
     "installed": "Đã cài keybox vào {target}",
     "backup": "Tệp trước đó đã được sao lưu vào {path}.",
     "onlyRkp": "Chứng chỉ RKP",
-    "onlyRkpHint": "Google đã ký chuỗi này cho khoá trong tệp keybox. Hãy giữ tệp khoá riêng tư: không có nó keybox vô dụng."
+    "onlyRkpHint": "Google đã ký chuỗi này cho khoá trong tệp keybox. Hãy giữ tệp khoá riêng tư: không có nó keybox vô dụng.",
+    "protocol": "Giao thức",
+    "auto": "Tự động (V2 → V1)",
+    "structureOnly": "Đã kiểm tra cấu trúc; máy chủ xác minh dữ liệu mã hóa",
+    "backend": "Backend"
   },
   "confirm": {
     "title": "Gửi yêu cầu tới KeyMint TA?",
-    "body": "Gửi đường dẫn CSR đã chọn tới ứng dụng tin cậy Qualcomm Keymaster hoặc KeyMint của thiết bị này và nộp kết quả cho Google. v1 là lệnh generateCsr cũ; v2 là lệnh KeyMint mới hơn. Chỉ hoạt động trên một số thiết bị và chỉ cấp chứng chỉ RKP. Tệp xuất ra chứa khóa riêng; hãy giữ chúng ở chế độ riêng tư. Tiếp tục?"
+    "body": "Thao tác này chạy RKP (V1 / V2) trên ứng dụng tin cậy KeyMint Qualcomm của thiết bị rồi gửi kết quả tới Google. Chỉ chạy trên một số thiết bị và chỉ phát chứng chỉ RKP. Các tệp xuất ra chứa khoá riêng; hãy bảo quản an toàn. Tiếp tục?"
   },
   "errors": {
     "acknowledgement_required": "Chưa xác nhận các giới hạn.",

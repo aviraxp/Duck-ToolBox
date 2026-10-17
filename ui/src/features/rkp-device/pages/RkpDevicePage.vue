@@ -7,6 +7,14 @@ import { useI18n } from "vue-i18n"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import ConfirmDialog from "@/core/components/ConfirmDialog.vue"
 import KeyValueList from "@/core/components/KeyValueList.vue"
@@ -16,7 +24,7 @@ import type { KeyboxTarget } from "@/core/features"
 import { contributions } from "@/core/features"
 import { notifySuccess } from "@/core/notify"
 
-import type { Provision } from "../api"
+import type { Protocol, Provision } from "../api"
 import { rkpDeviceApi } from "../api"
 import { useRkpDeviceI18n } from "../i18n"
 
@@ -36,14 +44,24 @@ const status = useQuery({
 })
 const result = ref<Provision | null>(null)
 const confirmOpen = ref(false)
-const csrVersion = ref<1 | 2>(2)
+const protocol = ref<Protocol>("auto")
+const canRun = computed(() => {
+  const data = status.data.value
+  return (
+    data?.prerequisites_met &&
+    (protocol.value === "auto" ||
+      { v1: data.v1_available, v2: data.v2_available, "v1-native": data.v1_native_available }[
+        protocol.value
+      ])
+  )
+})
 
 // Other tools register where a generated keybox can be installed, like the Tricky Store
 // manager does for the offline workbench.
 const keyboxTargets = contributions("keyboxTargets")
 
 const run = useMutation({
-  mutationFn: (version: 1 | 2) => rkpDeviceApi.provision(version),
+  mutationFn: () => rkpDeviceApi.provision(protocol.value),
   onSuccess: (data) => {
     result.value = data
     notifySuccess(t("run.done"))
@@ -97,6 +115,9 @@ const statusRows = computed<Row[]>(() => {
     },
     { label: t("status.library"), value: data.library_path, mono: true },
     { label: t("status.device"), value: data.device_path, mono: true },
+    { label: "V1 AIDL", value: data.v1_available ? yes : no },
+    { label: "V1 Native (0x311e)", value: data.v1_native_available ? yes : no },
+    { label: "CSR_V2", value: data.v2_available ? yes : no },
     { label: t("status.fingerprint"), value: data.fingerprint },
     { label: t("status.compatibility"), value: t("status.unverified") },
   ]
@@ -111,17 +132,19 @@ const resultRows = computed<Row[]>(() => {
   if (!data) return []
   return [
     { label: t("run.mode"), value: data.mode, mono: true },
-    { label: t("run.csrVersion"), value: data.csr_version },
+    { label: t("run.protocol"), value: data.csr_protocol.toUpperCase() },
+    { label: t("run.backend"), value: data.csr_backend === "aidl" ? "AIDL" : "Native" },
     { label: t("run.fingerprint"), value: data.fingerprint },
     { label: t("run.challenge"), value: data.challenge_hex, mono: true },
     { label: t("run.csr"), value: data.artifacts.csr_path, mono: true, copy: true },
     {
       label: t("run.localVerify"),
-      value: data.local_signature_checked
-        ? data.local_verify.signature_valid
-          ? t("run.valid")
-          : t("run.invalid")
-        : t("run.notChecked"),
+      value:
+        data.local_verify === null
+          ? t("run.structureOnly")
+          : data.local_verify.signature_valid
+            ? t("run.valid")
+            : t("run.invalid"),
     },
     { label: t("run.certificates"), value: data.chain.certificates },
     { label: t("run.deviceId"), value: data.device_id, mono: true },
@@ -211,33 +234,25 @@ const resultRows = computed<Row[]>(() => {
         </SectionCard>
 
         <div class="flex flex-col gap-2">
-          <p class="text-sm font-medium">{{ t("run.path") }}</p>
-          <div class="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              :variant="csrVersion === 1 ? 'default' : 'outline'"
-              :disabled="run.isPending.value"
-              @click="csrVersion = 1"
-            >
-              {{ t("run.pathV1") }}
-            </Button>
-            <Button
-              type="button"
-              :variant="csrVersion === 2 ? 'default' : 'outline'"
-              :disabled="run.isPending.value"
-              @click="csrVersion = 2"
-            >
-              {{ t("run.pathV2") }}
-            </Button>
-          </div>
-          <p class="text-muted-foreground text-sm">{{ t("run.pathHint") }}</p>
+          <Label for="rkp-protocol">{{ t("run.protocol") }}</Label>
+          <Select v-model="protocol" :disabled="run.isPending.value || confirmOpen">
+            <SelectTrigger id="rkp-protocol" class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">{{ t("run.auto") }}</SelectItem>
+              <SelectItem value="v1" :disabled="!status.data.value.v1_available"
+                >V1 AIDL</SelectItem
+              >
+              <SelectItem value="v2" :disabled="!status.data.value.v2_available">CSR_V2</SelectItem>
+              <SelectItem value="v1-native" :disabled="!status.data.value.v1_native_available">
+                V1 Native (0x311e)
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Button
           size="lg"
-          :disabled="
-            run.isPending.value || status.isFetching.value || !status.data.value.prerequisites_met
-          "
+          :disabled="run.isPending.value || status.isFetching.value || !canRun"
           @click="confirmOpen = true"
         >
           <Spinner v-if="run.isPending.value" class="size-6" />
@@ -283,7 +298,7 @@ const resultRows = computed<Row[]>(() => {
       :title="t('confirm.title')"
       :description="t('confirm.body')"
       :confirm-label="t('run.provision')"
-      @confirm="run.mutate(csrVersion)"
+      @confirm="run.mutate()"
     />
   </div>
 </template>

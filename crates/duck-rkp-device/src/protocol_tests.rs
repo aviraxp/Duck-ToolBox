@@ -69,7 +69,7 @@ fn ta_payload_rejects_another_command() {
     request.extend_from_slice(&encode(&Value::Map(vec![])).unwrap());
 
     let error = ta_payload(&request).unwrap_err();
-    assert!(error.to_string().contains("CSR v1 or CSR v2"));
+    assert!(error.to_string().contains("CSR_V2"));
 }
 
 #[test]

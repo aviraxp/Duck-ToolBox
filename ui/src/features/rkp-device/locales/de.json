@@ -8,7 +8,7 @@
     "title": "Bevor du fortfährst"
   },
   "limitations": {
-    "partial_device_support": "Funktioniert nur auf manchen Geräten. Qualcomm-KeyMint-Firmware, Root-Zugriff, /dev/smcinvoke und libkeymasterdeviceutils.so sind alle nötig, und trotzdem kann die Hersteller-ABI abweichen.",
+    "partial_device_support": "Funktioniert nur auf manchen Geräten. V1 AIDL benötigt app_process und die RKP-AIDL-APK dieses Geräts. V2 benötigt /dev/smcinvoke und libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 ist ein manuell wählbarer Ersatzpfad und benötigt dieselben Herstellerressourcen wie V2.",
     "rkp_only": "Es können nur RKP-Zertifikate ausgestellt werden. Für den signierten CSR ist ein kompatibles Gerät erforderlich. Der exportierte private Schlüssel wird in Software erzeugt; es wird kein privater Schlüssel aus der TEE extrahiert."
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "Ein anderer SoC-Hersteller wurde erkannt; dieser Vorgang erfordert Qualcomm KeyMint.",
     "fingerprint_missing": "Der Build-Fingerabdruck fehlt, daher kann der Server keine Challenge binden.",
     "soc_vendor_unknown": "Der SoC-Hersteller konnte aus lokalen Eigenschaften und Kernelangaben nicht ermittelt werden.",
-    "soc_vendor_conflict": "Lokale SoC-Angaben widersprechen sich. Prüfe vor dem Fortfahren die Erkennungsgrundlage."
+    "soc_vendor_conflict": "Lokale SoC-Angaben widersprechen sich. Prüfe vor dem Fortfahren die Erkennungsgrundlage.",
+    "v1_unavailable": "V1 benötigt app_process und die RKP-AIDL-APK dieses Geräts.",
+    "v2_unavailable": "V2 benötigt /dev/smcinvoke und libkeymasterdeviceutils.so.",
+    "v1_native_unavailable": "V1 Native benötigt /dev/smcinvoke und libkeymasterdeviceutils.so."
   },
   "run": {
     "provision": "RKP-Keybox ausstellen",
@@ -55,15 +58,9 @@
     "fingerprint": "Fingerabdruck",
     "challenge": "Challenge",
     "csr": "CSR",
-    "csrVersion": "CSR-Version",
-    "path": "CSR-Pfad",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 nutzt den älteren Keymaster-Befehl generateCsr. v2 nutzt den KeyMint-Befehl CSR_V2. Wähle den Pfad, den die Trusted App dieses Geräts annimmt.",
     "localVerify": "Lokale Prüfung",
     "valid": "Gültig",
     "invalid": "Ungültig",
-    "notChecked": "Nur die Struktur. Die Gerätesignatur ist für den Server verschlüsselt und wird hier nicht geprüft.",
     "certificates": "Zertifikate",
     "deviceId": "Geräte-ID",
     "keybox": "Keybox-Datei",
@@ -73,11 +70,15 @@
     "installed": "Keybox nach {target} installiert",
     "backup": "Die vorherige Datei wurde nach {path} gesichert.",
     "onlyRkp": "RKP-Zertifikat",
-    "onlyRkpHint": "Diese Kette wurde von Google für den Schlüssel in der Keybox-Datei signiert. Bewahre die Datei mit dem privaten Schlüssel auf: ohne sie ist die Keybox unbrauchbar."
+    "onlyRkpHint": "Diese Kette wurde von Google für den Schlüssel in der Keybox-Datei signiert. Bewahre die Datei mit dem privaten Schlüssel auf: ohne sie ist die Keybox unbrauchbar.",
+    "protocol": "Protokoll",
+    "auto": "Automatisch (V2 → V1)",
+    "structureOnly": "Struktur geprüft; verschlüsselte Nachweise prüft der Server",
+    "backend": "Backend"
   },
   "confirm": {
     "title": "Eine Anfrage an den KeyMint TA senden?",
-    "body": "Sendet den gewählten CSR-Pfad an die Qualcomm-Keymaster- oder KeyMint-Trusted-App dieses Geräts und übermittelt das Ergebnis an Google. v1 ist der ältere generateCsr-Befehl, v2 der neuere KeyMint-Befehl. Das funktioniert nur auf manchen Geräten, und es können nur RKP-Zertifikate ausgestellt werden. Die exportierten Dateien enthalten einen privaten Schlüssel; behalte sie privat. Fortfahren?"
+    "body": "Dies führt RKP (V1 / V2) auf der Qualcomm-KeyMint-Trusted-App des Geräts aus und sendet das Ergebnis an Google. Es funktioniert nur auf manchen Geräten und stellt nur RKP-Zertifikate aus. Die exportierten Dateien enthalten einen privaten Schlüssel; bewahre sie sicher auf. Fortfahren?"
   },
   "errors": {
     "acknowledgement_required": "Die Einschränkungen wurden nicht bestätigt.",

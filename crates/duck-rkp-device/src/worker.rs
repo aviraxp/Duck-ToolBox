@@ -1,12 +1,4 @@
-use std::{
-    fs,
-    io::Read as _,
-    os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _},
-    path::Path,
-    process::{Child, Command, ExitStatus, Stdio},
-    thread,
-    time::{Duration, Instant},
-};
+use std::{fs, os::unix::fs::PermissionsExt as _, path::Path, process::Command, time::Duration};
 
 use anyhow::{Context, Result};
 use duck_core::AppPaths;
@@ -14,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::DeviceRkpError,
+    process::{self, read_exchange_file},
     protocol::{self, BUFFER_SIZE, MAX_REQUEST_SIZE},
 };
 
@@ -86,17 +79,8 @@ pub(crate) fn sign(paths: &AppPaths, request: &[u8]) -> Result<Vec<u8>> {
     command
         .env("LD_LIBRARY_PATH", VENDOR_LIBRARY_PATH)
         .args(["rkp-device", "ta-csr", "--exchange"])
-        .arg(exchange.path())
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    detach_from_terminal(&mut command);
-    let child = command
-        .spawn()
-        .with_context(|| format!("start the KeyMint worker ({})", executable.display()))
-        .map_err(local)?;
-    let mut worker = Worker(child);
-    let status = worker.wait(TIMEOUT)?;
+        .arg(exchange.path());
+    let status = process::run(&mut command, TIMEOUT)?;
     let reply_path = exchange.path().join("reply.json");
     if !status.success() || !reply_path.is_file() {
         return Err(DeviceRkpError::Transport(format!(
@@ -110,31 +94,6 @@ pub(crate) fn sign(paths: &AppPaths, request: &[u8]) -> Result<Vec<u8>> {
         .map_err(|error| DeviceRkpError::InvalidResponse(format!("{error:#}")))?
         .into_result()
 }
-
-/// Puts the child in its own session, so a Ctrl-C aimed at the CLI (or anything else
-/// signalling the process group) cannot interrupt the vendor call halfway through. The
-/// null stdio above leaves the new session with nothing open on the terminal.
-///
-/// There is no safe API for `setsid` between fork and exec.
-#[cfg(unix)]
-#[allow(unsafe_code)]
-fn detach_from_terminal(command: &mut Command) {
-    use std::os::unix::process::CommandExt as _;
-
-    // SAFETY: `setsid` is async-signal-safe and one of the few calls documented as safe
-    // between fork and exec. A failure aborts the child before it touches vendor code.
-    unsafe {
-        command.pre_exec(|| {
-            if libc::setsid() == -1 {
-                return Err(std::io::Error::last_os_error());
-            }
-            Ok(())
-        });
-    }
-}
-
-#[cfg(not(unix))]
-fn detach_from_terminal(_command: &mut Command) {}
 
 pub(crate) fn execute(exchange: &Path) -> Result<()> {
     let result = (|| {
@@ -150,37 +109,6 @@ pub(crate) fn execute(exchange: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Read one regular exchange file through the same descriptor used for its size
-/// check. The read itself is bounded too, even if the file grows after metadata().
-fn read_exchange_file(path: &Path, limit: usize) -> Result<Vec<u8>> {
-    let file = fs::OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-        .open(path)
-        .with_context(|| format!("open {}", path.display()))?;
-    let metadata = file
-        .metadata()
-        .with_context(|| format!("stat {}", path.display()))?;
-    if !metadata.is_file() || metadata.len() > limit as u64 {
-        return Err(DeviceRkpError::InvalidResponse(format!(
-            "{} must be a regular file of at most {limit} bytes",
-            path.display()
-        ))
-        .into());
-    }
-    let mut bytes = Vec::new();
-    file.take(limit as u64 + 1)
-        .read_to_end(&mut bytes)
-        .with_context(|| format!("read {}", path.display()))?;
-    if bytes.len() > limit {
-        return Err(DeviceRkpError::InvalidResponse(
-            "worker exchange file grew beyond its limit".into(),
-        )
-        .into());
-    }
-    Ok(bytes)
-}
-
 fn native_request(request: &[u8]) -> Result<Vec<u8>> {
     #[cfg(all(target_os = "android", target_arch = "aarch64"))]
     {
@@ -193,35 +121,10 @@ fn native_request(request: &[u8]) -> Result<Vec<u8>> {
     }
 }
 
-struct Worker(Child);
-
-impl Worker {
-    fn wait(&mut self, timeout: Duration) -> Result<ExitStatus> {
-        let deadline = Instant::now() + timeout;
-        loop {
-            if let Some(status) = self.0.try_wait().map_err(|error| {
-                DeviceRkpError::Transport(format!("wait for the KeyMint worker: {error}"))
-            })? {
-                return Ok(status);
-            }
-            if Instant::now() >= deadline {
-                return Err(DeviceRkpError::Timeout.into());
-            }
-            thread::sleep(Duration::from_millis(50));
-        }
-    }
-}
-
-impl Drop for Worker {
-    fn drop(&mut self) {
-        let _ = self.0.kill();
-        let _ = self.0.wait();
-    }
-}
-
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
+    use crate::process::{Worker, detach_from_terminal};
 
     #[test]
     fn exchange_reads_are_bounded_and_reject_nonregular_files() {

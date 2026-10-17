@@ -245,7 +245,58 @@ fn features_manifest_lists_every_registered_tool() {
         .iter()
         .find(|feature| feature["id"] == "rkp-device")
         .unwrap();
-    assert_eq!(device["contract"], 2);
+    assert_eq!(device["contract"], 4);
+}
+
+#[test]
+fn explicit_device_rkp_protocol_reports_only_its_own_resource_requirements() {
+    let environment = env("device-rkp-protocol-prerequisites");
+    for (protocol, required, unrelated) in [
+        (
+            "v1",
+            "v1_unavailable",
+            vec!["keymint_library_missing", "smcinvoke_missing"],
+        ),
+        ("v2", "v2_unavailable", vec!["v1_unavailable"]),
+        (
+            "v1-native",
+            "v1_native_unavailable",
+            vec!["v1_unavailable", "v2_unavailable"],
+        ),
+        ("auto", "v1_unavailable", vec![]),
+    ] {
+        let output = command(&environment)
+            .args([
+                "rkp-device",
+                "provision",
+                "--acknowledge-limitations",
+                "--protocol",
+                protocol,
+            ])
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        let payload: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(payload["error"]["code"], "unsupported_device");
+        let message = payload["error"]["message"].as_str().unwrap();
+        assert!(message.contains(required), "{message}");
+        if !cfg!(all(target_os = "android", target_arch = "aarch64")) {
+            assert!(
+                message.contains("android_arm64_required"),
+                "shared gate must remain: {message}"
+            );
+        }
+        for blocker in unrelated {
+            assert!(
+                !message.contains(blocker),
+                "unrelated protocol requirement: {message}"
+            );
+        }
+        if protocol == "auto" {
+            assert!(message.contains("keymint_library_missing"));
+            assert!(message.contains("smcinvoke_missing"));
+        }
+    }
 }
 
 #[test]

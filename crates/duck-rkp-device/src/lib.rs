@@ -4,14 +4,16 @@
 mod artifacts;
 mod cli;
 mod error;
+mod issuance;
 #[cfg(all(target_os = "android", target_arch = "aarch64"))]
 #[allow(unsafe_code)]
 mod keymint;
+mod process;
 mod protocol;
-mod protocol_v1;
 mod service;
 mod soc;
 mod status;
+mod v1;
 mod worker;
 
 pub use cli::FEATURE;

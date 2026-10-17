@@ -68,6 +68,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install SDK tools for the V1 AIDL bridge
+        uses: android-actions/setup-android@v4.0.4
+        with:
+          packages: 'build-tools;36.0.0'
+      - name: Test the V1 bridge against a host AIDL fixture
+        run: python3 scripts/test_rkp_v1_bridge.py
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk

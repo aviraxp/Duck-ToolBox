@@ -8,7 +8,7 @@
     "title": "続行する前に"
   },
   "limitations": {
-    "partial_device_support": "対応するのは一部のデバイスだけです。Qualcomm KeyMint ファームウェア、root 権限、/dev/smcinvoke、libkeymasterdeviceutils.so が必要ですが、それでもベンダー ABI が異なる場合があります。",
+    "partial_device_support": "対応するのは一部のデバイスだけです。 V1 AIDL には app_process と端末の RKP AIDL APK が必要です。 V2 には /dev/smcinvoke と libkeymasterdeviceutils.so が必要です。 V1 AIDL: PureSoft HBK=0. Native V1 は手動で選ぶ予備の経路で、V2 と同じベンダーリソースが必要です。",
     "rkp_only": "発行できるのは RKP 証明書のみです。署名付き CSR の取得には対応する実機が必要です。エクスポートする秘密鍵はソフトウェアで生成され、TEE から秘密鍵を抽出することはありません。"
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "Qualcomm 以外の SoC ベンダーを識別しました。この操作には Qualcomm KeyMint が必要です。",
     "fingerprint_missing": "ビルド指紋がないため、サーバーがチャレンジを結び付けられません。",
     "soc_vendor_unknown": "ローカルのプロパティとカーネル情報から SoC ベンダーを識別できません。",
-    "soc_vendor_conflict": "ローカルの SoC 情報が矛盾しています。続行前に識別の根拠を確認してください。"
+    "soc_vendor_conflict": "ローカルの SoC 情報が矛盾しています。続行前に識別の根拠を確認してください。",
+    "v1_unavailable": "V1 には app_process と端末の RKP AIDL APK が必要です。",
+    "v2_unavailable": "V2 には /dev/smcinvoke と libkeymasterdeviceutils.so が必要です。",
+    "v1_native_unavailable": "V1 Native には /dev/smcinvoke と libkeymasterdeviceutils.so が必要です。"
   },
   "run": {
     "provision": "RKP keybox を発行",
@@ -55,15 +58,9 @@
     "fingerprint": "指紋",
     "challenge": "チャレンジ",
     "csr": "CSR",
-    "csrVersion": "CSR バージョン",
-    "path": "CSR パス",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 は古い Keymaster の generateCsr コマンドです。v2 は KeyMint の CSR_V2 コマンドです。このデバイスの信頼できるアプリが受け付ける方を選んでください。",
     "localVerify": "ローカル検証",
     "valid": "有効",
     "invalid": "無効",
-    "notChecked": "構造のみを確認します。デバイス署名はサーバー向けに暗号化されているため、ここでは検証しません。",
     "certificates": "証明書数",
     "deviceId": "デバイス ID",
     "keybox": "Keybox ファイル",
@@ -73,11 +70,15 @@
     "installed": "keybox を {target} にインストールしました",
     "backup": "以前のファイルは {path} にバックアップされました。",
     "onlyRkp": "RKP 証明書",
-    "onlyRkpHint": "このチェーンは keybox ファイル内の鍵に対して Google が署名したものです。秘密鍵ファイルを保管してください。ないと keybox は使えません。"
+    "onlyRkpHint": "このチェーンは keybox ファイル内の鍵に対して Google が署名したものです。秘密鍵ファイルを保管してください。ないと keybox は使えません。",
+    "protocol": "プロトコル",
+    "auto": "自動（V2 → V1）",
+    "structureOnly": "構造のみ確認。暗号化された署名情報はサーバーで検証",
+    "backend": "バックエンド"
   },
   "confirm": {
     "title": "KeyMint TA にリクエストを送信しますか？",
-    "body": "選択した CSR パスを、このデバイスの Qualcomm Keymaster または KeyMint トラステッドアプリに送り、結果を Google に提出します。v1 は古い generateCsr コマンド、v2 は新しい KeyMint コマンドです。一部のデバイスでのみ動作し、発行できるのは RKP 証明書だけです。書き出されるファイルには秘密鍵が含まれるため、非公開にしてください。続行しますか？"
+    "body": "この端末の Qualcomm KeyMint トラステッドアプリで RKP (V1 / V2) を実行し、結果を Google に送信します。対応デバイスは一部だけで、発行できるのは RKP 証明書のみです。エクスポートしたファイルには秘密鍵が含まれるため、厳重に管理してください。続行しますか？"
   },
   "errors": {
     "acknowledgement_required": "制限事項が確認されていません。",

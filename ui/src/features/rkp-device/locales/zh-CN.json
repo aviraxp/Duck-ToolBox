@@ -8,7 +8,7 @@
     "title": "继续之前"
   },
   "limitations": {
-    "partial_device_support": "仅在部分设备上可用。需要高通 KeyMint 固件、root 权限、/dev/smcinvoke 与 libkeymasterdeviceutils.so，即便如此厂商 ABI 仍可能不同。",
+    "partial_device_support": "仅在部分设备上可用。 V1 AIDL 需要 app_process 和本机 RKP AIDL APK。 V2 需要 /dev/smcinvoke 和 libkeymasterdeviceutils.so。 V1 AIDL: PureSoft HBK=0. 原生 V1 是手动备用路径，需要与 V2 相同的厂商资源。",
     "rkp_only": "只能签发 RKP 证书。必须通过兼容的真机取得签名 CSR。导出的私钥由软件生成，不会从 TEE 中提取私钥。"
   },
   "status": {
@@ -44,7 +44,10 @@
     "qualcomm_soc_required": "识别到了非高通 SoC 厂商；该操作需要高通 KeyMint。",
     "fingerprint_missing": "缺少构建指纹，服务器无法绑定 challenge。",
     "soc_vendor_unknown": "无法从本地属性和内核信息识别 SoC 厂商。",
-    "soc_vendor_conflict": "本地 SoC 信息互相冲突，请先核对识别依据。"
+    "soc_vendor_conflict": "本地 SoC 信息互相冲突，请先核对识别依据。",
+    "v1_unavailable": "V1 需要 app_process 和本机 RKP AIDL APK。",
+    "v2_unavailable": "V2 需要 /dev/smcinvoke 和 libkeymasterdeviceutils.so。",
+    "v1_native_unavailable": "V1 Native 需要 /dev/smcinvoke 和 libkeymasterdeviceutils.so。"
   },
   "run": {
     "provision": "签发 RKP keybox",
@@ -55,15 +58,9 @@
     "fingerprint": "指纹",
     "challenge": "Challenge",
     "csr": "CSR",
-    "csrVersion": "CSR 版本",
-    "path": "CSR 路径",
-    "pathV1": "v1 · Keymaster",
-    "pathV2": "v2 · KeyMint",
-    "pathHint": "v1 使用较旧的 Keymaster generateCsr 命令。v2 使用 KeyMint 的 CSR_V2 命令。请选择这台设备的可信应用能接受的路径。",
     "localVerify": "本地校验",
     "valid": "有效",
     "invalid": "无效",
-    "notChecked": "仅检查结构。设备签名在加密给服务器的数据里，这里不会验证。",
     "certificates": "证书数量",
     "deviceId": "设备 ID",
     "keybox": "Keybox 文件",
@@ -73,11 +70,15 @@
     "installed": "Keybox 已安装到 {target}",
     "backup": "原文件已备份到 {path}。",
     "onlyRkp": "RKP 证书",
-    "onlyRkpHint": "该证书链由 Google 为 keybox 文件中的密钥签发。请保留私钥文件：没有它 keybox 无法使用。"
+    "onlyRkpHint": "该证书链由 Google 为 keybox 文件中的密钥签发。请保留私钥文件：没有它 keybox 无法使用。",
+    "protocol": "协议",
+    "auto": "自动（V2 → V1）",
+    "structureOnly": "仅结构校验；加密签名材料由服务器验证",
+    "backend": "调用后端"
   },
   "confirm": {
     "title": "向 KeyMint TA 发送请求？",
-    "body": "这会把所选 CSR 路径发给本机的高通 Keymaster 或 KeyMint 可信应用，再把结果提交给 Google。v1 是较旧的 generateCsr 命令，v2 是较新的 KeyMint 命令。该功能仅在部分设备上可用，且只能签发 RKP 证书。生成的文件包含私钥，请妥善保管。是否继续？"
+    "body": "这会在本机高通 KeyMint 可信应用上执行 RKP (V1 / V2)，并把结果提交给 Google。该功能仅在部分设备上可用，且只能签发 RKP 证书。生成的文件包含私钥，请妥善保管。是否继续？"
   },
   "errors": {
     "acknowledgement_required": "尚未确认使用限制。",
