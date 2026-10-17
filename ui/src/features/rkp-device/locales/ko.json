@@ -8,7 +8,7 @@
     "title": "계속하기 전에"
   },
   "limitations": {
-    "partial_device_support": "일부 기기에서만 동작합니다. V1 AIDL에는 app_process와 기기의 RKP AIDL APK가 필요합니다. V2에는 /dev/smcinvoke와 libkeymasterdeviceutils.so가 필요합니다. V1 AIDL: PureSoft HBK=0. Native V1은 수동으로 선택하는 예비 경로이며 V2와 동일한 공급업체 리소스가 필요합니다.",
+    "partial_device_support": "일부 기기에서만 동작합니다. V1 AIDL에는 app_process와 기기의 RKP AIDL APK가 필요합니다. V2에는 /dev/smcinvoke와 libkeymasterdeviceutils.so가 필요합니다. V1 AIDL: PureSoft HBK=0. 자동 모드는 다른 사용 가능한 방식이 실패하면 Native V1도 시도합니다.",
     "rkp_only": "RKP 인증서만 발급할 수 있습니다. 서명된 CSR을 얻으려면 호환되는 실제 기기가 필요합니다. 내보내는 개인 키는 소프트웨어로 생성되며 TEE에서 개인 키를 추출하지 않습니다."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "RKP 인증서",
     "onlyRkpHint": "이 체인은 keybox 파일의 키에 대해 Google이 서명한 것입니다. 개인 키 파일을 보관하세요. 없으면 keybox를 쓸 수 없습니다.",
     "protocol": "프로토콜",
-    "auto": "자동 (V2 → V1)",
+    "auto": "자동 (사용 가능한 방식 순서대로)",
     "structureOnly": "구조만 확인됨. 암호화된 서명 자료는 서버에서 검증",
-    "backend": "백엔드"
+    "backend": "백엔드",
+    "attempts": "시도 기록",
+    "succeeded": "성공"
   },
   "confirm": {
     "title": "KeyMint TA로 요청을 보낼까요?",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "RKP 서버 응답이 잘못되었습니다.",
     "device_not_registered": "RKP 서버에서 이 기기를 인식하지 못합니다.",
     "rkp_client_error": "RKP 서버에서 요청을 거부했습니다.",
-    "rkp_server_error": "RKP 서버에 오류가 발생했습니다."
+    "rkp_server_error": "RKP 서버에 오류가 발생했습니다.",
+    "all_methods_failed": "사용 가능한 모든 발급 방식이 실패했습니다. 각 시도의 오류를 확인하세요."
   }
 }

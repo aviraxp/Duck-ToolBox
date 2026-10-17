@@ -8,7 +8,7 @@
     "title": "继续之前"
   },
   "limitations": {
-    "partial_device_support": "仅在部分设备上可用。 V1 AIDL 需要 app_process 和本机 RKP AIDL APK。 V2 需要 /dev/smcinvoke 和 libkeymasterdeviceutils.so。 V1 AIDL: PureSoft HBK=0. 原生 V1 是手动备用路径，需要与 V2 相同的厂商资源。",
+    "partial_device_support": "仅在部分设备上可用。 V1 AIDL 需要 app_process 和本机 RKP AIDL APK。 V2 需要 /dev/smcinvoke 和 libkeymasterdeviceutils.so。 V1 AIDL: PureSoft HBK=0. 自动模式会在其他可用方式失败后尝试原生 V1。",
     "rkp_only": "只能签发 RKP 证书。必须通过兼容的真机取得签名 CSR。导出的私钥由软件生成，不会从 TEE 中提取私钥。"
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "RKP 证书",
     "onlyRkpHint": "该证书链由 Google 为 keybox 文件中的密钥签发。请保留私钥文件：没有它 keybox 无法使用。",
     "protocol": "协议",
-    "auto": "自动（V2 → V1）",
+    "auto": "自动（依次尝试可用方式）",
     "structureOnly": "仅结构校验；加密签名材料由服务器验证",
-    "backend": "调用后端"
+    "backend": "调用后端",
+    "attempts": "尝试记录",
+    "succeeded": "成功"
   },
   "confirm": {
     "title": "向 KeyMint TA 发送请求？",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "RKP 服务器返回的数据无效。",
     "device_not_registered": "RKP 服务器无法识别此设备。",
     "rkp_client_error": "RKP 服务器拒绝了请求。",
-    "rkp_server_error": "RKP 服务器出错。"
+    "rkp_server_error": "RKP 服务器出错。",
+    "all_methods_failed": "所有可用签发方式均失败，请查看每次尝试的错误。"
   }
 }

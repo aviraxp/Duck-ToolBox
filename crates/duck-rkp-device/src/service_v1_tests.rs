@@ -18,8 +18,14 @@ impl LegacyTa {
 }
 
 impl Exchange for LegacyTa {
-    fn csr(&self, _request: &[u8]) -> anyhow::Result<Vec<u8>> {
-        self.calls.borrow_mut().push("v2");
+    fn csr(&self, request: &[u8]) -> anyhow::Result<Vec<u8>> {
+        self.calls
+            .borrow_mut()
+            .push(if request[..4] == v1::native::COMMAND.to_le_bytes() {
+                "v1-native"
+            } else {
+                "v2"
+            });
         Err(anyhow::Error::new(DeviceRkpError::Rejected(self.v2_error)).context("vendor reply"))
     }
     fn csr_v1(&self, request: &v1::Request) -> anyhow::Result<v1::Response> {
@@ -96,34 +102,27 @@ async fn legacy_round_trip_exports_a_keybox_without_claiming_local_signature_ver
 }
 
 #[tokio::test]
-async fn auto_falls_back_only_for_the_known_unsupported_v2_status() {
-    for (protocol, error, v1) in [
-        (Protocol::Auto, -18, true),
-        (Protocol::Auto, -1, true),
-        (Protocol::V2, -40, true),
-        (Protocol::Auto, -40, false),
-    ] {
-        let (_dir, ctx) = working_dir("rkp-v1-no-fallback");
-        let ta = LegacyTa::new(error);
-        let server = seeded_server();
-        let failure = provision(
-            &ctx,
-            true,
-            Options {
-                protocol,
-                ..Options::default()
-            },
-            &FixedKeys,
-            &ta,
-            &server,
-            &Availability { v1, v2: true },
-        )
-        .await
-        .unwrap_err();
-        assert_eq!(crate::error::code_of(&failure), "ta_rejected");
-        assert_eq!(*ta.calls.borrow(), ["v2"]);
-        assert!(server.submitted.lock().unwrap().is_empty());
-    }
+async fn explicit_v2_failure_does_not_switch_to_another_method() {
+    let (_dir, ctx) = working_dir("rkp-v2-explicit");
+    let ta = LegacyTa::new(-40);
+    let server = seeded_server();
+    let error = provision(
+        &ctx,
+        true,
+        Options {
+            protocol: Protocol::V2,
+            ..Options::default()
+        },
+        &FixedKeys,
+        &ta,
+        &server,
+        &FakeEnvironment,
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(crate::error::code_of(&error), "ta_rejected");
+    assert_eq!(*ta.calls.borrow(), ["v2"]);
+    assert!(server.submitted.lock().unwrap().is_empty());
 }
 
 #[tokio::test]
@@ -205,8 +204,9 @@ async fn invalid_legacy_evidence_is_never_submitted_and_writes_no_artifacts() {
     )
     .await
     .unwrap_err();
-    assert_eq!(crate::error::code_of(&failure), "invalid_device_csr");
-    assert!(failure.to_string().contains("CSR_V2 returned -40"));
+    assert_eq!(crate::error::code_of(&failure), "all_methods_failed");
+    assert!(failure.to_string().contains("v1 [invalid_device_csr]"));
+    assert_eq!(*ta.calls.borrow(), ["v2", "v1", "v1-native"]);
     assert!(server.submitted.lock().unwrap().is_empty());
     assert_eq!(fs::read_dir(&ctx.paths.outputs_dir).unwrap().count(), 0);
 }

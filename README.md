@@ -44,22 +44,28 @@ changed, removed or added on its own.
     This method is adapted from [LazyBonesLZY's rkp-v1-oracle](https://github.com/LazyBonesLZY/rkp-v1-oracle)
     at revision `b28480c98c1256753aed140c6ff86d0336f55c45` (MIT; see `module/licenses/rkp-v1-oracle.txt`).
   - Select `auto`, `v1`, `v2` or `v1-native` in the WebUI or with `rkp-device provision --protocol`.
-    Automatic mode prefers V2, falling back to AIDL V1 only on TA status `-40`; it starts
-    with V1 when V2's local resources are missing. Other failures are preserved.
-  - `v1-native` is an explicit backup using legacy vendor command `0x311e`, adapted from
+    Automatic mode tries the available methods in order: V2, AIDL V1, then native V1.
+    Each failed signing, CSR validation, server request or certificate validation moves
+    to the next method with a fresh challenge. It stops at the first complete success;
+    if every method fails, the error retains each method's name, code and reason.
+    An explicit selection tries only that method. Files are written only after issuance
+    and certificate validation succeed; a local save failure does not repeat issuance.
+  - Native V1 uses legacy vendor command `0x311e`, adapted from
     [aviraxp's native V1 contribution](https://github.com/eltavine/Duck-ToolBox/pull/19).
     It supplies a fresh MAC key, the public-key MAC and the complete selected EEK chain
     directly to the TA, reusing the isolated vendor worker. It needs the same library
     and device node as V2, and does not require Java or a system RKP APK at runtime.
-    The vendor framing and EEK curve compatibility require real-device validation;
-    automatic mode does not select this backend. It shares V1 CSR assembly and structural
-    validation with the AIDL adapter, preserving opaque DeviceInfo and ProtectedData.
+    The vendor framing and EEK curve compatibility require real-device validation.
+    It shares V1 CSR assembly and structural validation with the AIDL adapter,
+    preserving opaque DeviceInfo and ProtectedData.
   - Checks Android arm64, root and Qualcomm SoC before sending anything. V2 needs
     `/dev/smcinvoke` and `libkeymasterdeviceutils.so`; AIDL V1 needs `app_process` and a
     system RKP APK containing the matching AIDL classes. Neither check proves firmware support.
   - V1 encrypts the DICE and signing evidence for the server. Its local report is
     explicitly structural only (`local_verify: null`); V2 retains local signature checks.
     Results include `csr_protocol` (`v1` / `v2`) and `csr_backend` (`aidl` / `native`).
+    The `attempts` field records method failures and the final successful method; the
+    WebUI displays the same history.
   - Starts its isolated worker with vendor library search paths while retaining the
     default namespace's system dependency links. Library loading and the firmware ABI
     still need to work on the device; prerequisite checks alone cannot confirm them.
@@ -224,7 +230,7 @@ hardware properties and the kernel's [SoC family/machine attributes](https://www
 evidence and distinguishes Qualcomm, another vendor, unknown and conflicting information.
 Unknown or conflicting information blocks issuance rather than guessing. These local
 checks do not establish firmware ABI compatibility or server acceptance. The status format
-uses feature contract 4; update the backend and WebUI together.
+uses feature contract 5; update the backend and WebUI together.
 
 For offline identity checks, raw input must contain exactly 32 bytes unless `--offset`
 selects a 32-byte slice of a larger capture. Hex input must contain exactly 64 hexadecimal

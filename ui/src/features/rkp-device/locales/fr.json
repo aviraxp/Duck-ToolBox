@@ -8,7 +8,7 @@
     "title": "Avant de continuer"
   },
   "limitations": {
-    "partial_device_support": "Cela ne fonctionne que sur certains appareils. V1 AIDL nécessite app_process et l’APK AIDL RKP de cet appareil. V2 nécessite /dev/smcinvoke et libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 est une solution de secours manuelle qui nécessite les mêmes ressources constructeur que V2.",
+    "partial_device_support": "Cela ne fonctionne que sur certains appareils. V1 AIDL nécessite app_process et l’APK AIDL RKP de cet appareil. V2 nécessite /dev/smcinvoke et libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Le mode automatique essaie aussi Native V1 après un échec des autres méthodes disponibles.",
     "rkp_only": "Seuls des certificats RKP peuvent être délivrés. Un appareil compatible est nécessaire pour obtenir le CSR signé. La clé privée exportée est générée par logiciel ; aucune clé privée n’est extraite du TEE."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "Certificat RKP",
     "onlyRkpHint": "Cette chaîne a été signée par Google pour la clé du fichier keybox. Conservez le fichier de clé privée : sans lui le keybox est inutilisable.",
     "protocol": "Protocole",
-    "auto": "Automatique (V2 → V1)",
+    "auto": "Automatique (toutes les méthodes)",
     "structureOnly": "Structure vérifiée ; les preuves chiffrées sont vérifiées par le serveur",
-    "backend": "Backend"
+    "backend": "Backend",
+    "attempts": "Tentatives",
+    "succeeded": "Réussi"
   },
   "confirm": {
     "title": "Envoyer une requête au KeyMint TA ?",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "La réponse du serveur RKP n’est pas valide.",
     "device_not_registered": "Le serveur RKP ne reconnaît pas cet appareil.",
     "rkp_client_error": "Le serveur RKP a refusé la demande.",
-    "rkp_server_error": "Le serveur RKP a rencontré une erreur."
+    "rkp_server_error": "Le serveur RKP a rencontré une erreur.",
+    "all_methods_failed": "Toutes les méthodes disponibles ont échoué. Consultez les erreurs de chaque tentative."
   }
 }

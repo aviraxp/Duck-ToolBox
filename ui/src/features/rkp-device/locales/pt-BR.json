@@ -8,7 +8,7 @@
     "title": "Antes de continuar"
   },
   "limitations": {
-    "partial_device_support": "Só funciona em alguns dispositivos. V1 AIDL requer app_process e o APK AIDL RKP do dispositivo. V2 requer /dev/smcinvoke e libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 é uma alternativa manual e exige os mesmos recursos do fabricante que V2.",
+    "partial_device_support": "Só funciona em alguns dispositivos. V1 AIDL requer app_process e o APK AIDL RKP do dispositivo. V2 requer /dev/smcinvoke e libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. O modo automático também tenta Native V1 após a falha dos outros métodos disponíveis.",
     "rkp_only": "Só é possível emitir certificados RKP. É necessário um dispositivo compatível para obter o CSR assinado. A chave privada exportada é gerada por software; nenhuma chave privada é extraída do TEE."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "Certificado RKP",
     "onlyRkpHint": "Esta cadeia foi assinada pelo Google para a chave no arquivo keybox. Guarde o arquivo da chave privada: sem ele o keybox não serve.",
     "protocol": "Protocolo",
-    "auto": "Automático (V2 → V1)",
+    "auto": "Automático (todos os métodos)",
     "structureOnly": "Estrutura verificada; as provas criptografadas são verificadas pelo servidor",
-    "backend": "Backend"
+    "backend": "Backend",
+    "attempts": "Tentativas",
+    "succeeded": "Sucesso"
   },
   "confirm": {
     "title": "Enviar uma requisição ao KeyMint TA?",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "A resposta do servidor RKP é inválida.",
     "device_not_registered": "O servidor RKP não reconhece este dispositivo.",
     "rkp_client_error": "O servidor RKP recusou a solicitação.",
-    "rkp_server_error": "Ocorreu um erro no servidor RKP."
+    "rkp_server_error": "Ocorreu um erro no servidor RKP.",
+    "all_methods_failed": "Todos os métodos disponíveis falharam. Confira os erros de cada tentativa."
   }
 }

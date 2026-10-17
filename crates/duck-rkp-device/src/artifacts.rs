@@ -78,6 +78,7 @@ pub(crate) struct Artifacts {
     pub paths: ArtifactPaths,
 }
 
+#[cfg(test)]
 pub(crate) struct Inputs<'a> {
     pub secret_key: &'a P256SecretKey,
     pub csr: &'a [u8],
@@ -89,51 +90,87 @@ pub(crate) struct Inputs<'a> {
 ///
 /// The chain is put in keybox order once, so the file and the JSON summary describe the
 /// same chain.
+#[cfg(test)]
 pub(crate) fn write(paths: &AppPaths, inputs: Inputs<'_>) -> Result<Artifacts> {
-    let chain = parse_der_cert_chain(inputs.cert_chain_der)
+    prepare(
+        inputs.secret_key,
+        inputs.cert_chain_der.to_vec(),
+        inputs.manufacturer,
+    )?
+    .write(paths, inputs.csr)
+}
+
+/// All certificate checks and encoding finish before any output directory is created.
+pub(crate) struct Prepared {
+    chain: Vec<ParsedCertificate>,
+    device_id: String,
+    keybox_xml: String,
+    private_key_pem: String,
+    cert_chain_der: Vec<u8>,
+}
+
+pub(crate) fn prepare(
+    secret_key: &P256SecretKey,
+    cert_chain_der: Vec<u8>,
+    manufacturer: &str,
+) -> Result<Prepared> {
+    let chain = parse_der_cert_chain(&cert_chain_der)
         .map_err(|error| DeviceRkpError::InvalidCsr(format!("{error:#}")))?;
-    ensure_chain_matches_key(&chain, inputs.secret_key)?;
+    ensure_chain_matches_key(&chain, secret_key)?;
     ensure_chain_is_linked(&chain)?;
     let chain = keybox_order(&chain)?;
 
-    let device_id = device_id(inputs.manufacturer)?;
-    let keybox_xml = duck_rkp::keybox_xml::build_keybox_xml(
-        inputs.secret_key,
-        &keybox_chain(&chain),
-        &device_id,
-    )?;
-    let private_key_pem = private_key_pem(inputs.secret_key)?;
-    // TempDir reserves a private directory atomically and removes partial output on
-    // failure. It is retained only once every artifact has been written successfully.
-    let run_dir = unique_run_dir(paths)?;
-    let run_path = run_dir.path();
-
-    let artifact_paths = ArtifactPaths {
-        keybox_path: run_path.join("keybox.xml").display().to_string(),
-        csr_path: run_path.join("csr.cbor").display().to_string(),
-        cert_chain_path: run_path.join("cert_chain.der").display().to_string(),
-        private_key_path: run_path.join("private_key.pem").display().to_string(),
-        run_dir: run_path.display().to_string(),
-    };
-
-    write_secret(
-        Path::new(&artifact_paths.private_key_path),
-        private_key_pem.as_bytes(),
-    )?;
-    write_keybox(Path::new(&artifact_paths.keybox_path), &keybox_xml)?;
-    write_bytes_atomic(Path::new(&artifact_paths.csr_path), inputs.csr)?;
-    write_bytes_atomic(
-        Path::new(&artifact_paths.cert_chain_path),
-        inputs.cert_chain_der,
-    )?;
-    let _ = run_dir.keep();
-
-    Ok(Artifacts {
-        keybox_xml,
-        device_id,
+    let device_id = device_id(manufacturer)?;
+    let keybox_xml =
+        duck_rkp::keybox_xml::build_keybox_xml(secret_key, &keybox_chain(&chain), &device_id)?;
+    let private_key_pem = private_key_pem(secret_key)?;
+    Ok(Prepared {
         chain,
-        paths: artifact_paths,
+        device_id,
+        keybox_xml,
+        private_key_pem,
+        cert_chain_der,
     })
+}
+
+impl Prepared {
+    pub(crate) fn write(self, paths: &AppPaths, csr: &[u8]) -> Result<Artifacts> {
+        let Self {
+            chain,
+            device_id,
+            keybox_xml,
+            private_key_pem,
+            cert_chain_der,
+        } = self;
+        // TempDir reserves a private directory atomically and removes partial output on
+        // failure. It is retained only once every artifact has been written successfully.
+        let run_dir = unique_run_dir(paths)?;
+        let run_path = run_dir.path();
+
+        let artifact_paths = ArtifactPaths {
+            keybox_path: run_path.join("keybox.xml").display().to_string(),
+            csr_path: run_path.join("csr.cbor").display().to_string(),
+            cert_chain_path: run_path.join("cert_chain.der").display().to_string(),
+            private_key_path: run_path.join("private_key.pem").display().to_string(),
+            run_dir: run_path.display().to_string(),
+        };
+
+        write_secret(
+            Path::new(&artifact_paths.private_key_path),
+            private_key_pem.as_bytes(),
+        )?;
+        write_keybox(Path::new(&artifact_paths.keybox_path), &keybox_xml)?;
+        write_bytes_atomic(Path::new(&artifact_paths.csr_path), csr)?;
+        write_bytes_atomic(Path::new(&artifact_paths.cert_chain_path), &cert_chain_der)?;
+        let _ = run_dir.keep();
+
+        Ok(Artifacts {
+            keybox_xml,
+            device_id,
+            chain,
+            paths: artifact_paths,
+        })
+    }
 }
 
 /// Splits a concatenated DER certificate stream, as returned by `signCertificates`.

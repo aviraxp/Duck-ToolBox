@@ -1,6 +1,6 @@
 //! Selects one device protocol while preserving each protocol's validation semantics.
 use crate::{error::DeviceRkpError, protocol, status::DeviceStatus, v1};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::ValueEnum;
 use duck_rkp::{cose::EcKeyPair, error::RkpError, http::EekResponse, verify::VerifyReport};
 use serde::Serialize;
@@ -12,7 +12,7 @@ pub enum Protocol {
     Auto,
     V1,
     V2,
-    /// Explicit backup through the legacy vendor command; never selected automatically.
+    /// Select the legacy vendor command directly.
     V1Native,
 }
 
@@ -67,36 +67,78 @@ pub(crate) struct SignedCsr {
     pub local_verify: Option<VerifyReport>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum Method {
+    V2,
+    V1,
+    V1Native,
+}
+
+impl Method {
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::V2 => "v2",
+            Self::V1 => "v1",
+            Self::V1Native => "v1-native",
+        }
+    }
+}
+
+pub(crate) fn candidates(selected: Protocol, status: &DeviceStatus) -> Vec<Method> {
+    match selected {
+        Protocol::Auto => [
+            (Method::V2, status.v2_available),
+            (Method::V1, status.v1_available),
+            (Method::V1Native, status.v1_native_available),
+        ]
+        .into_iter()
+        .filter_map(|(method, available)| available.then_some(method))
+        .collect(),
+        Protocol::V2 => vec![Method::V2],
+        Protocol::V1 => vec![Method::V1],
+        Protocol::V1Native => vec![Method::V1Native],
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct AttemptFailure {
+    pub code: &'static str,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct Attempt {
+    pub method: Method,
+    pub error: Option<AttemptFailure>,
+}
+
+impl Attempt {
+    pub(crate) fn failed(method: Method, error: &anyhow::Error) -> Self {
+        Self {
+            method,
+            error: Some(AttemptFailure {
+                code: crate::error::code_of(error),
+                message: format!("{error:#}"),
+            }),
+        }
+    }
+}
+
+/// Issue exactly one CSR. The provisioning owner decides whether another method is needed.
 pub(crate) fn issue(
-    selected: Protocol,
-    status: &DeviceStatus,
+    method: Method,
     exchange: &dyn Exchange,
     key: &EcKeyPair,
     eek: &EekResponse,
 ) -> Result<SignedCsr> {
-    if selected == Protocol::V1Native {
-        return issue_native_v1(exchange, key, eek);
-    }
-    if selected == Protocol::V1 || (selected == Protocol::Auto && !status.v2_available) {
-        return issue_v1(exchange, key, eek);
+    match method {
+        Method::V1 => return issue_v1(exchange, key, eek),
+        Method::V1Native => return issue_native_v1(exchange, key, eek),
+        Method::V2 => {}
     }
     let request = protocol::build_request(&eek.challenge, &key.cose_public)?;
-    let signed = match exchange.csr(&request) {
-        Ok(signed) => signed,
-        Err(error) => {
-            let unsupported = error.chain().any(|cause| {
-                matches!(
-                    cause.downcast_ref::<DeviceRkpError>(),
-                    Some(DeviceRkpError::Rejected(-40))
-                )
-            });
-            if selected == Protocol::Auto && status.v1_available && unsupported {
-                return issue_v1(exchange, key, eek)
-                    .context("CSR_V2 returned -40; V1 fallback failed");
-            }
-            return Err(error);
-        }
-    };
+    let signed = exchange.csr(&request)?;
     let bytes = protocol::unwrap_csr(&signed)?;
     let report = protocol::validate_csr(&bytes, &eek.challenge, &key.cose_public)?;
     Ok(SignedCsr {

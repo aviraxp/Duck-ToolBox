@@ -62,6 +62,9 @@ const keyboxTargets = contributions("keyboxTargets")
 
 const run = useMutation({
   mutationFn: () => rkpDeviceApi.provision(protocol.value),
+  onMutate: () => {
+    result.value = null
+  },
   onSuccess: (data) => {
     result.value = data
     notifySuccess(t("run.done"))
@@ -126,6 +129,13 @@ const statusRows = computed<Row[]>(() => {
 function blockerText(blocker: string): string {
   return dynamic(`blockers.${blocker}`, blocker)
 }
+
+const attemptRows = computed<Row[]>(() =>
+  (result.value?.attempts ?? []).map((attempt) => ({
+    label: { v2: "CSR_V2", v1: "V1 AIDL", "v1-native": "V1 Native (0x311e)" }[attempt.method],
+    value: attempt.error ? `[${attempt.error.code}] ${attempt.error.message}` : t("run.succeeded"),
+  })),
+)
 
 const resultRows = computed<Row[]>(() => {
   const data = result.value
@@ -269,6 +279,10 @@ const resultRows = computed<Row[]>(() => {
     <template v-if="result">
       <SectionCard :title="t('run.title')">
         <KeyValueList :rows="resultRows" />
+      </SectionCard>
+
+      <SectionCard :title="t('run.attempts')">
+        <KeyValueList :rows="attemptRows" />
       </SectionCard>
 
       <div v-if="keyboxTargets.length" class="flex flex-col gap-2">

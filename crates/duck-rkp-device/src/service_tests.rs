@@ -447,7 +447,10 @@ async fn provision_rejects_a_csr_for_another_key() {
     let error = provision(
         &ctx,
         true,
-        Options::default(),
+        Options {
+            protocol: super::Protocol::V2,
+            ..Options::default()
+        },
         &FixedKeys,
         &ta,
         &server,
@@ -530,3 +533,6 @@ mod native;
 
 #[path = "service_v1_tests.rs"]
 mod legacy;
+
+#[path = "service_fallback_tests.rs"]
+mod fallback;

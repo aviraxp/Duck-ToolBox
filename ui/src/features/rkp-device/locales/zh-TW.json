@@ -8,7 +8,7 @@
     "title": "繼續之前"
   },
   "limitations": {
-    "partial_device_support": "僅在部分裝置上可用。 V1 AIDL 需要 app_process 與本機 RKP AIDL APK。 V2 需要 /dev/smcinvoke 與 libkeymasterdeviceutils.so。 V1 AIDL: PureSoft HBK=0. 原生 V1 是手動備用路徑，需要與 V2 相同的廠商資源。",
+    "partial_device_support": "僅在部分裝置上可用。 V1 AIDL 需要 app_process 與本機 RKP AIDL APK。 V2 需要 /dev/smcinvoke 與 libkeymasterdeviceutils.so。 V1 AIDL: PureSoft HBK=0. 自動模式會在其他可用方式失敗後嘗試原生 V1。",
     "rkp_only": "只能簽發 RKP 憑證。必須透過相容的實機取得已簽署的 CSR。匯出的私密金鑰由軟體產生，不會從 TEE 中擷取私密金鑰。"
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "RKP 憑證",
     "onlyRkpHint": "此憑證鏈由 Google 為 keybox 檔案中的金鑰簽發。請保留私鑰檔案：沒有它 keybox 無法使用。",
     "protocol": "協定",
-    "auto": "自動（V2 → V1）",
+    "auto": "自動（依序嘗試可用方式）",
     "structureOnly": "僅檢查結構；加密簽章資料由伺服器驗證",
-    "backend": "呼叫後端"
+    "backend": "呼叫後端",
+    "attempts": "嘗試記錄",
+    "succeeded": "成功"
   },
   "confirm": {
     "title": "要向 KeyMint TA 傳送請求嗎？",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "RKP 伺服器的回應無效。",
     "device_not_registered": "RKP 伺服器無法辨識此裝置。",
     "rkp_client_error": "RKP 伺服器拒絕了要求。",
-    "rkp_server_error": "RKP 伺服器發生錯誤。"
+    "rkp_server_error": "RKP 伺服器發生錯誤。",
+    "all_methods_failed": "所有可用簽發方式均失敗，請查看每次嘗試的錯誤。"
   }
 }

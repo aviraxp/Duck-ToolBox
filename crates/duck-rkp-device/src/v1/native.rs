@@ -1,5 +1,5 @@
 //! Legacy Qualcomm generateCsr framing, adapted from the native V1 contribution.
-//! The command and vendor ABI require firmware validation; automatic mode does not use it.
+//! The command and vendor ABI require firmware validation on the target device.
 
 use anyhow::{Context, Result, bail};
 use ciborium::value::Value;

@@ -9,7 +9,7 @@ pub static FEATURE: ClapFeature<Command> = ClapFeature::new(
     FeatureInfo {
         id: "rkp-device",
         summary: "Device-backed RKP issuance on compatible Qualcomm KeyMint firmware",
-        contract: 4,
+        contract: 5,
     },
     dispatch,
 );
@@ -20,7 +20,7 @@ pub enum Command {
     Status,
     /// Issue one RKP ECDSA keybox using this device's KeyMint TA (compatible firmware only).
     Provision {
-        /// Auto prefers V2 and falls back to AIDL V1 on -40. V1-native is an explicit backup.
+        /// Auto tries V2, AIDL V1, then native V1 until one completes successfully.
         #[arg(long, value_enum, default_value = "auto")]
         protocol: Protocol,
         /// Acknowledge that only some devices work and that only RKP certificates are issued.

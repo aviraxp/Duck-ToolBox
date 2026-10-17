@@ -8,7 +8,7 @@
     "title": "Trước khi tiếp tục"
   },
   "limitations": {
-    "partial_device_support": "Chỉ chạy trên một số thiết bị. V1 AIDL cần app_process và APK RKP AIDL của thiết bị. V2 cần /dev/smcinvoke và libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 là đường dẫn dự phòng chọn thủ công và cần cùng tài nguyên nhà cung cấp như V2.",
+    "partial_device_support": "Chỉ chạy trên một số thiết bị. V1 AIDL cần app_process và APK RKP AIDL của thiết bị. V2 cần /dev/smcinvoke và libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Chế độ tự động cũng thử Native V1 khi các phương thức khả dụng khác thất bại.",
     "rkp_only": "Chỉ có thể cấp chứng chỉ RKP. Cần thiết bị tương thích để lấy CSR đã ký. Khoá riêng xuất ra được tạo bằng phần mềm; không trích xuất khoá riêng từ TEE."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "Chứng chỉ RKP",
     "onlyRkpHint": "Google đã ký chuỗi này cho khoá trong tệp keybox. Hãy giữ tệp khoá riêng tư: không có nó keybox vô dụng.",
     "protocol": "Giao thức",
-    "auto": "Tự động (V2 → V1)",
+    "auto": "Tự động (thử mọi phương thức)",
     "structureOnly": "Đã kiểm tra cấu trúc; máy chủ xác minh dữ liệu mã hóa",
-    "backend": "Backend"
+    "backend": "Backend",
+    "attempts": "Các lần thử",
+    "succeeded": "Thành công"
   },
   "confirm": {
     "title": "Gửi yêu cầu tới KeyMint TA?",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "Phản hồi của máy chủ RKP không hợp lệ.",
     "device_not_registered": "Máy chủ RKP không nhận ra thiết bị này.",
     "rkp_client_error": "Máy chủ RKP đã từ chối yêu cầu.",
-    "rkp_server_error": "Máy chủ RKP gặp lỗi."
+    "rkp_server_error": "Máy chủ RKP gặp lỗi.",
+    "all_methods_failed": "Tất cả phương thức cấp khả dụng đều thất bại. Hãy xem lỗi của từng lần thử."
   }
 }

@@ -3,16 +3,18 @@
 ## Unreleased
 
 ### Device RKP Issuer
-- Adds the explicit `v1-native` backup backend for vendor command `0x311e`, preserving
-  the AIDL V1 and V2 adapters and their automatic selection rules. Native V1 reuses the
+- Automatic mode tries V2, AIDL V1 and native V1 in order, skipping unavailable methods.
+  Any issuance or validation failure advances to the next method with a fresh challenge;
+  failures are aggregated only after every method fails. Successful results include an
+  attempt history. Local file writes happen after certificate validation succeeds.
+- Adds the `v1-native` backend for vendor command `0x311e`. Native V1 reuses the
   V1 CSR assembler, structural checks and isolated worker, and does not require a system
   AIDL APK at runtime. Firmware and server acceptance remain unverified.
 - Reports protocol and backend separately, exposes native V1 resource availability,
-  and uses feature contract 4 across the CLI and WebUI.
+  and uses feature contract 5 across the CLI and WebUI.
 - Adds the V1 AIDL signing oracle for Qualcomm PureSoft firmware with a zero HBK,
   adapted from LazyBonesLZY/rkp-v1-oracle under its MIT license.
-- Adds automatic and explicit V1/V2 protocol selection. Automatic mode falls back
-  only on V2 TA status `-40`, or starts with V1 when V2 resources are unavailable.
+- Adds automatic and explicit V1/V2 protocol selection.
 - Selects the full EEK chain for the HAL's reported curve and uses the device's AIDL
   proxy in an isolated process, with bounded exchange files and timeout cleanup.
 - Reports V1 as structurally checked; encrypted signing evidence is verified by the

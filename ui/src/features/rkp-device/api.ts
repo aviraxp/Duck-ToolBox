@@ -72,6 +72,15 @@ const provisionSchema = z
     mode: z.string(),
     csr_protocol: z.enum(["v1", "v2"]),
     csr_backend: z.enum(["aidl", "native"]),
+    attempts: z
+      .array(
+        z.object({
+          method: z.enum(["v2", "v1", "v1-native"]),
+          error: z.object({ code: z.string(), message: z.string() }).nullable(),
+        }),
+      )
+      .min(1)
+      .max(3),
     fingerprint: z.string(),
     challenge_hex: z.string(),
     csr_len: z.number(),
@@ -88,6 +97,20 @@ const provisionSchema = z
   .refine((data) => data.csr_backend !== "aidl" || data.csr_protocol === "v1", {
     message: "The AIDL backend only implements V1",
   })
+  .refine(
+    (data) => {
+      const last = data.attempts.at(-1)
+      const expected =
+        data.csr_protocol === "v2" ? "v2" : data.csr_backend === "aidl" ? "v1" : "v1-native"
+      return (
+        last?.method === expected &&
+        last.error === null &&
+        data.attempts.slice(0, -1).every((attempt) => attempt.error !== null) &&
+        new Set(data.attempts.map((attempt) => attempt.method)).size === data.attempts.length
+      )
+    },
+    { message: "Attempt history disagrees with the successful issuance method" },
+  )
 export type Provision = z.infer<typeof provisionSchema>
 export type Protocol = "auto" | "v1" | "v2" | "v1-native"
 

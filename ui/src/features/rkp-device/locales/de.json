@@ -8,7 +8,7 @@
     "title": "Bevor du fortfährst"
   },
   "limitations": {
-    "partial_device_support": "Funktioniert nur auf manchen Geräten. V1 AIDL benötigt app_process und die RKP-AIDL-APK dieses Geräts. V2 benötigt /dev/smcinvoke und libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 ist ein manuell wählbarer Ersatzpfad und benötigt dieselben Herstellerressourcen wie V2.",
+    "partial_device_support": "Funktioniert nur auf manchen Geräten. V1 AIDL benötigt app_process und die RKP-AIDL-APK dieses Geräts. V2 benötigt /dev/smcinvoke und libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Der automatische Modus versucht Native V1, wenn die anderen verfügbaren Methoden fehlschlagen.",
     "rkp_only": "Es können nur RKP-Zertifikate ausgestellt werden. Für den signierten CSR ist ein kompatibles Gerät erforderlich. Der exportierte private Schlüssel wird in Software erzeugt; es wird kein privater Schlüssel aus der TEE extrahiert."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "RKP-Zertifikat",
     "onlyRkpHint": "Diese Kette wurde von Google für den Schlüssel in der Keybox-Datei signiert. Bewahre die Datei mit dem privaten Schlüssel auf: ohne sie ist die Keybox unbrauchbar.",
     "protocol": "Protokoll",
-    "auto": "Automatisch (V2 → V1)",
+    "auto": "Automatisch (alle Methoden)",
     "structureOnly": "Struktur geprüft; verschlüsselte Nachweise prüft der Server",
-    "backend": "Backend"
+    "backend": "Backend",
+    "attempts": "Versuche",
+    "succeeded": "Erfolgreich"
   },
   "confirm": {
     "title": "Eine Anfrage an den KeyMint TA senden?",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "Die Antwort des RKP-Servers ist ungültig.",
     "device_not_registered": "Der RKP-Server kennt dieses Gerät nicht.",
     "rkp_client_error": "Der RKP-Server hat die Anfrage abgelehnt.",
-    "rkp_server_error": "Beim RKP-Server ist ein Fehler aufgetreten."
+    "rkp_server_error": "Beim RKP-Server ist ein Fehler aufgetreten.",
+    "all_methods_failed": "Alle verfügbaren Ausstellungsmethoden sind fehlgeschlagen. Prüfen Sie die Fehler der einzelnen Versuche."
   }
 }

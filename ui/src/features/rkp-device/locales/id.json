@@ -8,7 +8,7 @@
     "title": "Sebelum melanjutkan"
   },
   "limitations": {
-    "partial_device_support": "Hanya berfungsi di sebagian perangkat. V1 AIDL memerlukan app_process dan APK RKP AIDL perangkat. V2 memerlukan /dev/smcinvoke dan libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 adalah jalur cadangan manual dan memerlukan sumber daya vendor yang sama dengan V2.",
+    "partial_device_support": "Hanya berfungsi di sebagian perangkat. V1 AIDL memerlukan app_process dan APK RKP AIDL perangkat. V2 memerlukan /dev/smcinvoke dan libkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Mode otomatis juga mencoba Native V1 setelah metode lain yang tersedia gagal.",
     "rkp_only": "Hanya sertifikat RKP yang dapat diterbitkan. Perangkat yang kompatibel diperlukan untuk mendapatkan CSR bertanda tangan. Kunci privat yang diekspor dibuat oleh perangkat lunak; tidak ada kunci privat yang diambil dari TEE."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "Sertifikat RKP",
     "onlyRkpHint": "Rantai ini ditandatangani Google untuk kunci di berkas keybox. Simpan berkas kunci privat: tanpa itu keybox tidak berguna.",
     "protocol": "Protokol",
-    "auto": "Otomatis (V2 → V1)",
+    "auto": "Otomatis (coba semua metode)",
     "structureOnly": "Struktur diperiksa; bukti terenkripsi diverifikasi oleh server",
-    "backend": "Backend"
+    "backend": "Backend",
+    "attempts": "Riwayat percobaan",
+    "succeeded": "Berhasil"
   },
   "confirm": {
     "title": "Kirim permintaan ke KeyMint TA?",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "Respons server RKP tidak valid.",
     "device_not_registered": "Server RKP tidak mengenali perangkat ini.",
     "rkp_client_error": "Server RKP menolak permintaan.",
-    "rkp_server_error": "Server RKP mengalami error."
+    "rkp_server_error": "Server RKP mengalami error.",
+    "all_methods_failed": "Semua metode penerbitan yang tersedia gagal. Periksa kesalahan setiap percobaan."
   }
 }

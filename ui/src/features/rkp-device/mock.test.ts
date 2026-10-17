@@ -36,7 +36,7 @@ describe("device RKP mock protocol contract", () => {
     })
   })
 
-  it("uses the native V1 backup only when explicitly selected", () => {
+  it("allows explicit native V1 while automatic mode prefers V2", () => {
     history.replaceState(null, "", "/?rkp=v2-only")
     expect(provision("v1-native")).toMatchObject({
       csr_protocol: "v1",
@@ -44,6 +44,35 @@ describe("device RKP mock protocol contract", () => {
       local_verify: null,
     })
     expect(provision()).toMatchObject({ csr_protocol: "v2", csr_backend: "native" })
+  })
+
+  it("tries each available method until native V1 succeeds", () => {
+    history.replaceState(null, "", "/?rkp_fail=v2,v1")
+    expect(provision()).toMatchObject({
+      csr_protocol: "v1",
+      csr_backend: "native",
+      attempts: [
+        { method: "v2", error: { code: "ta_rejected" } },
+        { method: "v1", error: { code: "ta_rejected" } },
+        { method: "v1-native", error: null },
+      ],
+    })
+  })
+
+  it("returns one aggregate failure only after all available methods fail", () => {
+    history.replaceState(null, "", "/?rkp_fail=v2,v1,v1-native")
+    expect(() => provision()).toThrowError(expect.objectContaining({ code: "all_methods_failed" }))
+    expect(() => provision("v2")).toThrowError(expect.objectContaining({ code: "ta_rejected" }))
+  })
+
+  it("skips methods without resources", () => {
+    history.replaceState(null, "", "/?rkp=v2-only&rkp_fail=v2")
+    expect(provision()).toMatchObject({
+      attempts: [
+        { method: "v2", error: { code: "ta_rejected" } },
+        { method: "v1-native", error: null },
+      ],
+    })
   })
 
   it("rejects invalid protocol flags as usage errors", () => {

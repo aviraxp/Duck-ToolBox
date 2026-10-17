@@ -8,7 +8,7 @@
     "title": "قبل المتابعة"
   },
   "limitations": {
-    "partial_device_support": "لا يعمل إلا على بعض الأجهزة. يتطلب V1 AIDL وجود app_process وملف APK الخاص بـ RKP AIDL على الجهاز. يتطلب V2 وجود /dev/smcinvoke وlibkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. Native V1 مسار احتياطي يُختار يدويًا ويتطلب موارد المورّد نفسها التي يتطلبها V2.",
+    "partial_device_support": "لا يعمل إلا على بعض الأجهزة. يتطلب V1 AIDL وجود app_process وملف APK الخاص بـ RKP AIDL على الجهاز. يتطلب V2 وجود /dev/smcinvoke وlibkeymasterdeviceutils.so. V1 AIDL: PureSoft HBK=0. يجرّب الوضع التلقائي Native V1 أيضًا بعد فشل الطرق الأخرى المتاحة.",
     "rkp_only": "يمكن إصدار شهادات RKP فقط. يلزم جهاز متوافق للحصول على طلب CSR الموقّع. يُولّد المفتاح الخاص المصدّر برمجيًا؛ ولا يُستخرج أي مفتاح خاص من TEE."
   },
   "status": {
@@ -72,9 +72,11 @@
     "onlyRkp": "شهادة RKP",
     "onlyRkpHint": "وقّعت Google هذه السلسلة للمفتاح الموجود في ملف keybox. احتفظ بملف المفتاح الخاص: فبدونه لا يصلح keybox.",
     "protocol": "البروتوكول",
-    "auto": "تلقائي (V2 → V1)",
+    "auto": "تلقائي (تجربة كل الطرق)",
     "structureOnly": "تم فحص البنية؛ يتحقق الخادم من الأدلة المشفرة",
-    "backend": "الواجهة الخلفية"
+    "backend": "الواجهة الخلفية",
+    "attempts": "سجل المحاولات",
+    "succeeded": "نجحت"
   },
   "confirm": {
     "title": "إرسال طلب إلى KeyMint TA؟",
@@ -94,6 +96,7 @@
     "invalid_rkp_response": "استجابة خادم RKP غير صالحة.",
     "device_not_registered": "لا يتعرّف خادم RKP على هذا الجهاز.",
     "rkp_client_error": "رفض خادم RKP الطلب.",
-    "rkp_server_error": "حدث خطأ في خادم RKP."
+    "rkp_server_error": "حدث خطأ في خادم RKP.",
+    "all_methods_failed": "فشلت جميع طرق الإصدار المتاحة. راجع أخطاء كل محاولة."
   }
 }

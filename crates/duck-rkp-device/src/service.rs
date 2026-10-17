@@ -144,6 +144,7 @@ pub(crate) struct ProvisionData {
     pub mode: &'static str,
     pub csr_protocol: Protocol,
     pub csr_backend: issuance::Backend,
+    pub attempts: Vec<issuance::Attempt>,
     pub fingerprint: String,
     pub challenge_hex: String,
     pub csr_len: usize,
@@ -190,28 +191,102 @@ pub(crate) async fn provision(
         .unwrap_or(prerequisites.fingerprint.trim())
         .to_owned();
     let key = key_source.generate()?;
-    let eek = server.challenge(&fingerprint).await?;
-
-    let signed = issuance::issue(options.protocol, &prerequisites, exchange, &key, &eek)?;
-    let csr = &signed.bytes;
-
-    let chains = server.certificates(csr, &eek.challenge).await?;
-    let chain_der = single_chain(&chains)?;
-    let mut artifacts = artifacts::write(
-        &ctx.paths,
-        artifacts::Inputs {
-            secret_key: &key.secret_key,
-            csr,
-            cert_chain_der: &chain_der,
-            manufacturer: &prerequisites.soc_manufacturer,
-        },
-    )?;
+    let mut attempts = Vec::new();
+    let mut issued = None;
+    for method in issuance::candidates(options.protocol, &prerequisites) {
+        match attempt(
+            method,
+            &fingerprint,
+            &prerequisites.soc_manufacturer,
+            &key,
+            exchange,
+            server,
+        )
+        .await
+        {
+            Ok(result) => {
+                attempts.push(issuance::Attempt {
+                    method,
+                    error: None,
+                });
+                issued = Some(result);
+                break;
+            }
+            Err(error) if options.protocol == Protocol::Auto => {
+                attempts.push(issuance::Attempt::failed(method, &error));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    let Some(Issued {
+        eek,
+        signed,
+        prepared,
+    }) = issued
+    else {
+        let failures = attempts
+            .iter()
+            .filter_map(|attempt| {
+                attempt.error.as_ref().map(|error| {
+                    format!(
+                        "{} [{}]: {}",
+                        attempt.method.name(),
+                        error.code,
+                        error.message
+                    )
+                })
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        return Err(DeviceRkpError::AllMethodsFailed(failures).into());
+    };
+    let mut artifacts = prepared.write(&ctx.paths, &signed.bytes)?;
     if let Some(path) = options.output {
         artifacts::write_keybox(&path, &artifacts.keybox_xml)?;
         artifacts.paths.keybox_path = path.display().to_string();
     }
 
-    Ok(report(&fingerprint, &eek, signed, artifacts, prerequisites))
+    Ok(report(
+        &fingerprint,
+        &eek,
+        signed,
+        artifacts,
+        prerequisites,
+        attempts,
+    ))
+}
+
+struct Issued {
+    eek: EekResponse,
+    signed: issuance::SignedCsr,
+    prepared: artifacts::Prepared,
+}
+
+async fn attempt(
+    method: issuance::Method,
+    fingerprint: &str,
+    manufacturer: &str,
+    key: &EcKeyPair,
+    exchange: &dyn Exchange,
+    server: &dyn Server,
+) -> Result<Issued> {
+    // Each method owns a fresh challenge, including after a previous server rejection.
+    let eek = server.challenge(fingerprint).await?;
+    if eek.challenge.is_empty() || eek.challenge.len() > 64 {
+        return Err(RkpError::InvalidRkpResponse(
+            "device challenge must contain 1..64 bytes".into(),
+        )
+        .into());
+    }
+    let signed = issuance::issue(method, exchange, key, &eek)?;
+    let chains = server.certificates(&signed.bytes, &eek.challenge).await?;
+    let chain_der = single_chain(&chains)?;
+    let prepared = artifacts::prepare(&key.secret_key, chain_der, manufacturer)?;
+    Ok(Issued {
+        eek,
+        signed,
+        prepared,
+    })
 }
 
 fn report(
@@ -220,6 +295,7 @@ fn report(
     signed: issuance::SignedCsr,
     artifacts: Artifacts,
     prerequisites: DeviceStatus,
+    attempts: Vec<issuance::Attempt>,
 ) -> ProvisionData {
     ProvisionData {
         acknowledged_limitations: true,
@@ -227,6 +303,7 @@ fn report(
         mode: "device-ta-oracle",
         csr_protocol: signed.protocol,
         csr_backend: signed.backend,
+        attempts,
         fingerprint: fingerprint.to_owned(),
         challenge_hex: eek.challenge_hex.clone(),
         csr_len: signed.bytes.len(),
