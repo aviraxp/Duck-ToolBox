@@ -36,8 +36,16 @@ changed, removed or added on its own.
   - Device values are read from AOSP build properties.
 - **Device RKP Issuer**: the same keybox export, but signed by the device itself instead of
   a seed you hold.
-  - Asks this device's Qualcomm KeyMint TA for a `CSR_V2` over a P-256 key we generated,
-    submits the result to Google's RKP server and exports `keybox.xml` with the private key.
+  - Asks this device's Qualcomm Keymaster or KeyMint TA for a CSR over a P-256 key we
+    generated, submits the result to Google's RKP server and exports `keybox.xml` with the
+    private key.
+  - **CSR v2** (default) is KeyMint command `0x3122`: `{4: challenge, 57: keysToSign}`.
+    The TA returns an `AuthenticatedRequest`, which is checked locally before submission.
+  - **CSR v1** is the older Keymaster `generateCsr` command `0x311e`. The request carries
+    the challenge, a 32-byte MAC key, the 32-byte MAC tag and the EEK certificate chain.
+    The TA returns DeviceInfo and ProtectedData. The tool sends Google the legacy
+    four-element certificate request. The device signature stays inside ProtectedData,
+    which is encrypted to the server, so it is not checked locally.
   - Checks its prerequisites (Android arm64, root, `/dev/smcinvoke`,
     `libkeymasterdeviceutils.so`, Qualcomm SoC) before it sends anything.
   - Starts its isolated worker with vendor library search paths while retaining the
@@ -201,8 +209,9 @@ Commands that take input read JSON from stdin with `--stdin-json`.
 hardware properties and the kernel's [SoC family/machine attributes](https://www.kernel.org/doc/rustdoc/latest/kernel/soc/struct.Attributes.html). It reports the raw
 evidence and distinguishes Qualcomm, another vendor, unknown and conflicting information.
 Unknown or conflicting information blocks issuance rather than guessing. These local
-checks do not establish firmware ABI compatibility or server acceptance. The status format
-uses feature contract 2; update the backend and WebUI together.
+checks do not establish firmware ABI compatibility or server acceptance. Provision accepts
+`--csr-version 1` or `--csr-version 2`. The feature contract is 3; update the backend and
+WebUI together.
 
 For offline identity checks, raw input must contain exactly 32 bytes unless `--offset`
 selects a 32-byte slice of a larger capture. Hex input must contain exactly 64 hexadecimal

@@ -8,6 +8,7 @@ mod error;
 #[allow(unsafe_code)]
 mod keymint;
 mod protocol;
+mod protocol_v1;
 mod service;
 mod soc;
 mod status;

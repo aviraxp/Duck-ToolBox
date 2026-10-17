@@ -16,7 +16,9 @@ use rcgen::{
 };
 use sha2::{Digest as _, Sha256};
 
-use super::{DeviceEnvironment, Environment, Exchange, KeySource, Options, Server, provision};
+use super::{
+    CsrVersion, DeviceEnvironment, Environment, Exchange, KeySource, Options, Server, provision,
+};
 use crate::{protocol, status::DeviceStatus};
 
 const CHALLENGE: [u8; 32] = [0x5A; 32];
@@ -92,7 +94,11 @@ impl FakeTa {
     }
 
     fn csr(&self) -> Vec<u8> {
-        let (challenge, requested) = requested_fields(&self.request.borrow());
+        let request = self.request.borrow();
+        if request.get(..4) == Some(crate::protocol_v1::CSR_V1_COMMAND.to_le_bytes().as_slice()) {
+            return v1_ta_payload();
+        }
+        let (challenge, requested) = requested_fields(&request);
         let signed = self.substitute.clone().unwrap_or(requested);
         build_csr(
             &self.device_keys,
@@ -214,6 +220,7 @@ impl Server for FakeServer {
                 eek_public: vec![0x55; 32],
                 eek_id: vec![0x66; 4],
                 eek_curve: RPC_CURVE_25519,
+                eek_chain: vec![0x80],
             })
         })
     }
@@ -288,12 +295,44 @@ fn requested_point(cose_key: &Value) -> Vec<u8> {
     point
 }
 
+fn v1_ta_payload() -> Vec<u8> {
+    let device_info = encode(&Value::Map(vec![(
+        Value::Text("brand".into()),
+        Value::Text("qualcomm".into()),
+    )]))
+    .unwrap();
+    let protected_data = encode(&Value::Array(vec![
+        bytes(vec![1]),
+        Value::Map(vec![]),
+        bytes(vec![2, 3, 4]),
+        Value::Array(vec![]),
+    ]))
+    .unwrap();
+    encode(&Value::Map(vec![
+        (int(59), bytes(device_info)),
+        (int(60), bytes(protected_data)),
+    ]))
+    .unwrap()
+}
+
 /// Reads `keysToSign[0]` out of the CSR the TA produced.
 fn csr_keys_to_sign(csr: &[u8]) -> Value {
     let decoded = duck_rkp::cbor::decode(csr).unwrap();
     let Value::Array(request) = decoded else {
         panic!("CSR must be a CBOR array");
     };
+    if matches!(request.first(), Some(Value::Map(_))) {
+        let Value::Array(mac) = &request[3] else {
+            panic!("CSR v1 must end with COSE_Mac0");
+        };
+        let Value::Bytes(payload) = &mac[2] else {
+            panic!("COSE_Mac0 payload must be bytes");
+        };
+        let Value::Array(keys) = duck_rkp::cbor::decode(payload).unwrap() else {
+            panic!("COSE_Mac0 payload must be a key array");
+        };
+        return keys[0].clone();
+    }
     let Value::Array(signed) = &request[3] else {
         panic!("SignedData must be a CBOR array");
     };
@@ -365,6 +404,7 @@ async fn provision_completes_the_round_trip_and_writes_artifacts() {
         Options {
             fingerprint: Some(FINGERPRINT.into()),
             output: None,
+            csr_version: CsrVersion::V2,
         },
         &FixedKeys,
         &ta,
@@ -377,6 +417,8 @@ async fn provision_completes_the_round_trip_and_writes_artifacts() {
     assert!(data.acknowledged_limitations);
     assert_eq!(data.limitations, super::LIMITATIONS);
     assert_eq!(data.mode, "device-ta-oracle");
+    assert_eq!(data.csr_version, 2);
+    assert!(data.local_signature_checked);
     assert_eq!(data.fingerprint, FINGERPRINT);
     assert_eq!(data.challenge_hex, hex::encode(CHALLENGE));
     assert!(data.local_verify.signature_valid);
@@ -411,6 +453,50 @@ async fn provision_completes_the_round_trip_and_writes_artifacts() {
     ] {
         assert!(PathBuf::from(path).is_file(), "{path} must exist");
     }
+}
+
+#[tokio::test]
+async fn provision_v1_submits_the_legacy_certificate_request() {
+    let (_dir, ctx) = working_dir("rkp-device-v1");
+    let ta = FakeTa::new();
+    let server = seeded_server();
+
+    let data = provision(
+        &ctx,
+        true,
+        Options {
+            fingerprint: Some(FINGERPRINT.into()),
+            output: None,
+            csr_version: CsrVersion::V1,
+        },
+        &FixedKeys,
+        &ta,
+        &server,
+        &FakeEnvironment,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(data.mode, "device-ta-csr-v1");
+    assert_eq!(data.csr_version, 1);
+    assert!(!data.local_signature_checked);
+    assert!(!data.local_verify.signature_valid);
+    assert_eq!(data.local_verify.csr_version, 1);
+    assert_eq!(data.local_verify.cert_type, "csr-v1");
+    assert_eq!(data.chain.certificates, 2);
+
+    let request = ta.request.borrow();
+    assert_eq!(
+        request.get(..4),
+        Some(crate::protocol_v1::CSR_V1_COMMAND.to_le_bytes().as_slice())
+    );
+    let submitted = server.submitted.lock().unwrap();
+    assert_eq!(submitted.len(), 1);
+    assert_eq!(submitted[0][0], 0x84);
+    assert_eq!(
+        csr_keys_to_sign(&submitted[0]),
+        cose_public_of(&P256SecretKey::from_slice(&SEED_KEY).unwrap())
+    );
 }
 
 #[tokio::test]
@@ -454,6 +540,7 @@ async fn provision_mirrors_the_keybox_to_an_explicit_output() {
         Options {
             fingerprint: None,
             output: Some(output.clone()),
+            csr_version: CsrVersion::V2,
         },
         &FixedKeys,
         &ta,

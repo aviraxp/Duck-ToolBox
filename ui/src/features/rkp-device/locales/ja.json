@@ -55,9 +55,15 @@
     "fingerprint": "指紋",
     "challenge": "チャレンジ",
     "csr": "CSR",
+    "csrVersion": "CSR バージョン",
+    "path": "CSR パス",
+    "pathV1": "v1 · Keymaster",
+    "pathV2": "v2 · KeyMint",
+    "pathHint": "v1 は古い Keymaster の generateCsr コマンドです。v2 は KeyMint の CSR_V2 コマンドです。このデバイスの信頼できるアプリが受け付ける方を選んでください。",
     "localVerify": "ローカル検証",
     "valid": "有効",
     "invalid": "無効",
+    "notChecked": "構造のみを確認します。デバイス署名はサーバー向けに暗号化されているため、ここでは検証しません。",
     "certificates": "証明書数",
     "deviceId": "デバイス ID",
     "keybox": "Keybox ファイル",
@@ -71,7 +77,7 @@
   },
   "confirm": {
     "title": "KeyMint TA にリクエストを送信しますか？",
-    "body": "この端末の Qualcomm KeyMint トラステッドアプリで CSR_V2 を実行し、結果を Google に送信します。対応デバイスは一部だけで、発行できるのは RKP 証明書のみです。エクスポートしたファイルには秘密鍵が含まれるため、厳重に管理してください。続行しますか？"
+    "body": "選択した CSR パスを、このデバイスの Qualcomm Keymaster または KeyMint トラステッドアプリに送り、結果を Google に提出します。v1 は古い generateCsr コマンド、v2 は新しい KeyMint コマンドです。一部のデバイスでのみ動作し、発行できるのは RKP 証明書だけです。書き出されるファイルには秘密鍵が含まれるため、非公開にしてください。続行しますか？"
   },
   "errors": {
     "acknowledgement_required": "制限事項が確認されていません。",

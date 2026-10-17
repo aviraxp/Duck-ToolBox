@@ -13,6 +13,7 @@ mod tests;
 
 pub use csr::{CsrBundle, build_csr, build_sig_structure, device_info_to_cbor};
 pub use keys::{DeviceKeys, EcKeyPair, generate_ec_keypair};
+pub use protected::{cose_mac0, key_mac_tag};
 
 pub const ALG_EDDSA: i128 = -8;
 pub const ALG_ES256: i128 = -7;

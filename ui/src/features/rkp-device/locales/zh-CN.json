@@ -55,9 +55,15 @@
     "fingerprint": "指纹",
     "challenge": "Challenge",
     "csr": "CSR",
+    "csrVersion": "CSR 版本",
+    "path": "CSR 路径",
+    "pathV1": "v1 · Keymaster",
+    "pathV2": "v2 · KeyMint",
+    "pathHint": "v1 使用较旧的 Keymaster generateCsr 命令。v2 使用 KeyMint 的 CSR_V2 命令。请选择这台设备的可信应用能接受的路径。",
     "localVerify": "本地校验",
     "valid": "有效",
     "invalid": "无效",
+    "notChecked": "仅检查结构。设备签名在加密给服务器的数据里，这里不会验证。",
     "certificates": "证书数量",
     "deviceId": "设备 ID",
     "keybox": "Keybox 文件",
@@ -71,7 +77,7 @@
   },
   "confirm": {
     "title": "向 KeyMint TA 发送请求？",
-    "body": "这会在本机高通 KeyMint 可信应用上执行 CSR_V2，并把结果提交给 Google。该功能仅在部分设备上可用，且只能签发 RKP 证书。生成的文件包含私钥，请妥善保管。是否继续？"
+    "body": "这会把所选 CSR 路径发给本机的高通 Keymaster 或 KeyMint 可信应用，再把结果提交给 Google。v1 是较旧的 generateCsr 命令，v2 是较新的 KeyMint 命令。该功能仅在部分设备上可用，且只能签发 RKP 证书。生成的文件包含私钥，请妥善保管。是否继续？"
   },
   "errors": {
     "acknowledgement_required": "尚未确认使用限制。",

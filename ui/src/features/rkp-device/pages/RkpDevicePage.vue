@@ -36,13 +36,14 @@ const status = useQuery({
 })
 const result = ref<Provision | null>(null)
 const confirmOpen = ref(false)
+const csrVersion = ref<1 | 2>(2)
 
 // Other tools register where a generated keybox can be installed, like the Tricky Store
 // manager does for the offline workbench.
 const keyboxTargets = contributions("keyboxTargets")
 
 const run = useMutation({
-  mutationFn: rkpDeviceApi.provision,
+  mutationFn: (version: 1 | 2) => rkpDeviceApi.provision(version),
   onSuccess: (data) => {
     result.value = data
     notifySuccess(t("run.done"))
@@ -110,12 +111,17 @@ const resultRows = computed<Row[]>(() => {
   if (!data) return []
   return [
     { label: t("run.mode"), value: data.mode, mono: true },
+    { label: t("run.csrVersion"), value: data.csr_version },
     { label: t("run.fingerprint"), value: data.fingerprint },
     { label: t("run.challenge"), value: data.challenge_hex, mono: true },
     { label: t("run.csr"), value: data.artifacts.csr_path, mono: true, copy: true },
     {
       label: t("run.localVerify"),
-      value: data.local_verify.signature_valid ? t("run.valid") : t("run.invalid"),
+      value: data.local_signature_checked
+        ? data.local_verify.signature_valid
+          ? t("run.valid")
+          : t("run.invalid")
+        : t("run.notChecked"),
     },
     { label: t("run.certificates"), value: data.chain.certificates },
     { label: t("run.deviceId"), value: data.device_id, mono: true },
@@ -204,6 +210,29 @@ const resultRows = computed<Row[]>(() => {
           </div>
         </SectionCard>
 
+        <div class="flex flex-col gap-2">
+          <p class="text-sm font-medium">{{ t("run.path") }}</p>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              :variant="csrVersion === 1 ? 'default' : 'outline'"
+              :disabled="run.isPending.value"
+              @click="csrVersion = 1"
+            >
+              {{ t("run.pathV1") }}
+            </Button>
+            <Button
+              type="button"
+              :variant="csrVersion === 2 ? 'default' : 'outline'"
+              :disabled="run.isPending.value"
+              @click="csrVersion = 2"
+            >
+              {{ t("run.pathV2") }}
+            </Button>
+          </div>
+          <p class="text-muted-foreground text-sm">{{ t("run.pathHint") }}</p>
+        </div>
+
         <Button
           size="lg"
           :disabled="
@@ -254,7 +283,7 @@ const resultRows = computed<Row[]>(() => {
       :title="t('confirm.title')"
       :description="t('confirm.body')"
       :confirm-label="t('run.provision')"
-      @confirm="run.mutate()"
+      @confirm="run.mutate(csrVersion)"
     />
   </div>
 </template>

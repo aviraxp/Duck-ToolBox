@@ -61,6 +61,7 @@ async fn provision_honors_an_explicit_fingerprint() {
         Options {
             fingerprint: Some("custom/fingerprint".into()),
             output: None,
+            csr_version: CsrVersion::V2,
         },
         &FixedKeys,
         &ta,
@@ -112,6 +113,7 @@ async fn an_explicit_fingerprint_satisfies_only_the_fingerprint_prerequisite() {
             Options {
                 fingerprint: Some("  custom/fingerprint  ".into()),
                 output: None,
+                csr_version: CsrVersion::V2,
             },
             &FixedKeys,
             &FakeTa::new(),

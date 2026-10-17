@@ -55,9 +55,15 @@
     "fingerprint": "Sidik jari",
     "challenge": "Challenge",
     "csr": "CSR",
+    "csrVersion": "Versi CSR",
+    "path": "Jalur CSR",
+    "pathV1": "v1 · Keymaster",
+    "pathV2": "v2 · KeyMint",
+    "pathHint": "v1 memakai perintah generateCsr Keymaster yang lebih lama. v2 memakai perintah CSR_V2 KeyMint. Pilih jalur yang diterima aplikasi tepercaya perangkat ini.",
     "localVerify": "Verifikasi lokal",
     "valid": "Valid",
     "invalid": "Tidak valid",
+    "notChecked": "Hanya struktur. Tanda tangan perangkat dienkripsi untuk server dan tidak diperiksa di sini.",
     "certificates": "Sertifikat",
     "deviceId": "ID perangkat",
     "keybox": "Berkas keybox",
@@ -71,7 +77,7 @@
   },
   "confirm": {
     "title": "Kirim permintaan ke KeyMint TA?",
-    "body": "Ini menjalankan CSR_V2 pada aplikasi tepercaya Qualcomm KeyMint di perangkat lalu mengirim hasilnya ke Google. Hanya berfungsi di sebagian perangkat dan hanya menerbitkan sertifikat RKP. Berkas yang diekspor berisi kunci privat; simpan dengan aman. Lanjutkan?"
+    "body": "Mengirim jalur CSR yang dipilih ke aplikasi tepercaya Qualcomm Keymaster atau KeyMint di perangkat ini, lalu mengirim hasilnya ke Google. v1 adalah perintah generateCsr yang lama; v2 adalah perintah KeyMint yang lebih baru. Hanya berfungsi di sebagian perangkat dan hanya dapat menerbitkan sertifikat RKP. Berkas yang diekspor berisi kunci privat; jaga kerahasiaannya. Lanjutkan?"
   },
   "errors": {
     "acknowledgement_required": "Batasan belum disetujui.",

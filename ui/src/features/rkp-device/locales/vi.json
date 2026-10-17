@@ -55,9 +55,15 @@
     "fingerprint": "Vân tay",
     "challenge": "Challenge",
     "csr": "CSR",
+    "csrVersion": "Phiên bản CSR",
+    "path": "Đường dẫn CSR",
+    "pathV1": "v1 · Keymaster",
+    "pathV2": "v2 · KeyMint",
+    "pathHint": "v1 dùng lệnh generateCsr cũ của Keymaster. v2 dùng lệnh CSR_V2 của KeyMint. Hãy chọn đường dẫn mà ứng dụng tin cậy của thiết bị này chấp nhận.",
     "localVerify": "Kiểm tra cục bộ",
     "valid": "Hợp lệ",
     "invalid": "Không hợp lệ",
+    "notChecked": "Chỉ kiểm tra cấu trúc. Chữ ký thiết bị được mã hóa cho máy chủ và không được kiểm tra ở đây.",
     "certificates": "Chứng chỉ",
     "deviceId": "ID thiết bị",
     "keybox": "Tệp keybox",
@@ -71,7 +77,7 @@
   },
   "confirm": {
     "title": "Gửi yêu cầu tới KeyMint TA?",
-    "body": "Thao tác này chạy CSR_V2 trên ứng dụng tin cậy KeyMint Qualcomm của thiết bị rồi gửi kết quả tới Google. Chỉ chạy trên một số thiết bị và chỉ phát chứng chỉ RKP. Các tệp xuất ra chứa khoá riêng; hãy bảo quản an toàn. Tiếp tục?"
+    "body": "Gửi đường dẫn CSR đã chọn tới ứng dụng tin cậy Qualcomm Keymaster hoặc KeyMint của thiết bị này và nộp kết quả cho Google. v1 là lệnh generateCsr cũ; v2 là lệnh KeyMint mới hơn. Chỉ hoạt động trên một số thiết bị và chỉ cấp chứng chỉ RKP. Tệp xuất ra chứa khóa riêng; hãy giữ chúng ở chế độ riêng tư. Tiếp tục?"
   },
   "errors": {
     "acknowledgement_required": "Chưa xác nhận các giới hạn.",

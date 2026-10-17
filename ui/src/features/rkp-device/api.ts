@@ -65,6 +65,8 @@ const provisionSchema = z.object({
   acknowledged_limitations: z.boolean(),
   limitations: z.array(z.string()),
   mode: z.string(),
+  csr_version: z.union([z.literal(1), z.literal(2)]),
+  local_signature_checked: z.boolean(),
   fingerprint: z.string(),
   challenge_hex: z.string(),
   csr_len: z.number(),
@@ -83,6 +85,9 @@ export const rkpDeviceApi = {
    * Sends the acknowledgement the backend requires. It is the flag a user has to give,
    * not a default, so the button that reaches this call is always an explicit one.
    */
-  provision: () =>
-    duckd(["rkp-device", "provision", "--acknowledge-limitations"], { schema: provisionSchema }),
+  provision: (csrVersion: 1 | 2 = 2) =>
+    duckd(
+      ["rkp-device", "provision", "--acknowledge-limitations", `--csr-version=${csrVersion}`],
+      { schema: provisionSchema },
+    ),
 }

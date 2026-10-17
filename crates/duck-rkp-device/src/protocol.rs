@@ -190,16 +190,21 @@ fn array_get<'a>(items: &'a [Value], index: usize, label: &str) -> Result<&'a Va
         .ok_or_else(|| anyhow::anyhow!("{label} is missing entry {index}"))
 }
 
-/// The KeyMint `send_cmd` byte payload for one CSR request, checked before it is sent.
+/// The `send_cmd` byte payload for one CSR request, checked before it is sent.
+/// Accepts Keymaster CSR v1 (`0x311e`) and KeyMint CSR v2 (`0x3122`).
 pub(crate) fn ta_payload(request: &[u8]) -> Result<&[u8]> {
     let Some((command, payload)) = request.split_at_checked(4) else {
         bail!("request is missing its command header");
     };
-    if command != CSR_COMMAND.to_le_bytes() {
-        bail!("worker only accepts CSR_V2 requests");
+    if command == CSR_COMMAND.to_le_bytes() {
+        validate_request(payload)?;
+        return Ok(payload);
     }
-    validate_request(payload)?;
-    Ok(payload)
+    if command == crate::protocol_v1::CSR_V1_COMMAND.to_le_bytes() {
+        crate::protocol_v1::validate_v1_request(payload)?;
+        return Ok(payload);
+    }
+    bail!("worker only accepts CSR v1 or CSR v2 requests");
 }
 
 fn decode_exact(bytes: &[u8]) -> Result<Value> {

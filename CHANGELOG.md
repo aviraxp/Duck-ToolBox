@@ -28,6 +28,11 @@
   failures (`126` or `127`).
 
 ### Device RKP Issuer
+- Adds a CSR v1 path for older Keymaster firmware. Command `0x311e` (`KEYMINT_GENERATE_CSR`)
+  sends the challenge, MAC key, MAC tag and EEK chain, then reads DeviceInfo and
+  ProtectedData. The server body is the legacy four-element certificate request. CSR v2
+  (`0x3122`) is unchanged. The v1 device signature is encrypted to the server and is not
+  checked locally. Feature contract 3.
 - Cross-checks Qualcomm aliases (including QTI/QCOM), SoC part numbers, hardware properties
   and kernel SoC information. Unknown and conflicting evidence have separate blockers;
   empty properties no longer imply support. The WebUI shows the evidence and keeps firmware

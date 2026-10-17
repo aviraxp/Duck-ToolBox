@@ -55,9 +55,15 @@
     "fingerprint": "Huella",
     "challenge": "Challenge",
     "csr": "CSR",
+    "csrVersion": "Versión de CSR",
+    "path": "Ruta de CSR",
+    "pathV1": "v1 · Keymaster",
+    "pathV2": "v2 · KeyMint",
+    "pathHint": "v1 usa el comando generateCsr de Keymaster, más antiguo. v2 usa el comando CSR_V2 de KeyMint. Elige la ruta que acepte la aplicación de confianza de este dispositivo.",
     "localVerify": "Verificación local",
     "valid": "Válido",
     "invalid": "No válido",
+    "notChecked": "Solo la estructura. La firma del dispositivo va cifrada para el servidor y no se comprueba aquí.",
     "certificates": "Certificados",
     "deviceId": "ID del dispositivo",
     "keybox": "Archivo keybox",
@@ -71,7 +77,7 @@
   },
   "confirm": {
     "title": "¿Enviar una petición al KeyMint TA?",
-    "body": "Esto ejecuta CSR_V2 en la app de confianza KeyMint de Qualcomm del dispositivo y envía el resultado a Google. Solo funciona en algunos dispositivos y solo emite certificados RKP. Los archivos exportados contienen una clave privada; guárdalos de forma segura. ¿Continuar?"
+    "body": "Envía la ruta de CSR elegida a la aplicación de confianza Keymaster o KeyMint de Qualcomm de este dispositivo y entrega el resultado a Google. v1 es el comando generateCsr antiguo; v2 es el comando KeyMint más reciente. Solo funciona en algunos dispositivos y solo puede emitir certificados RKP. Los archivos exportados contienen una clave privada; mantenlos en privado. ¿Continuar?"
   },
   "errors": {
     "acknowledgement_required": "No se aceptaron las limitaciones.",

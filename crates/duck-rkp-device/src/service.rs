@@ -29,6 +29,32 @@ use crate::{
     worker,
 };
 
+/// Which TA command produces the CSR.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum CsrVersion {
+    /// KeyMint `CSR_V2`, command `0x3122`.
+    #[default]
+    V2,
+    /// Keymaster `generateCsr`, command `0x311e`.
+    V1,
+}
+
+impl CsrVersion {
+    pub(crate) fn number(self) -> u8 {
+        match self {
+            Self::V1 => 1,
+            Self::V2 => 2,
+        }
+    }
+
+    fn mode(self) -> &'static str {
+        match self {
+            Self::V1 => "device-ta-csr-v1",
+            Self::V2 => "device-ta-oracle",
+        }
+    }
+}
+
 /// Everything the caller can still adjust without touching KeyMint.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Options {
@@ -36,6 +62,8 @@ pub(crate) struct Options {
     pub fingerprint: Option<String>,
     /// Also write `keybox.xml` here, instead of only inside the timestamped run directory.
     pub output: Option<PathBuf>,
+    /// `V2` unless the device's trusted app only implements `generateCsr`.
+    pub csr_version: CsrVersion,
 }
 
 /// Where the key pair that ends up in `keysToSign` comes from. Production uses the OS
@@ -138,6 +166,10 @@ pub(crate) struct ProvisionData {
     pub limitations: [&'static str; 2],
     /// How the CSR was produced, so a report can tell a device run from an offline one.
     pub mode: &'static str,
+    /// `1` for Keymaster `generateCsr`, `2` for KeyMint `CSR_V2`.
+    pub csr_version: u8,
+    /// `false` for CSR v1: its device signature is encrypted to the server.
+    pub local_signature_checked: bool,
     pub fingerprint: String,
     pub challenge_hex: String,
     pub csr_len: usize,
@@ -185,10 +217,10 @@ pub(crate) async fn provision(
     let key = key_source.generate()?;
     let eek = server.challenge(&fingerprint).await?;
 
-    let request = protocol::build_request(&eek.challenge, &key.cose_public)?;
-    let signed = exchange.csr(&request)?;
-    let csr = protocol::unwrap_csr(&signed)?;
-    let local_verify = protocol::validate_csr(&csr, &eek.challenge, &key.cose_public)?;
+    let (csr, local_verify) = match options.csr_version {
+        CsrVersion::V2 => sign_v2(exchange, &eek, &key)?,
+        CsrVersion::V1 => sign_v1(exchange, &eek, &key)?,
+    };
 
     let chains = server.certificates(&csr, &eek.challenge).await?;
     let chain_der = single_chain(&chains)?;
@@ -207,6 +239,7 @@ pub(crate) async fn provision(
     }
 
     Ok(report(
+        options.csr_version,
         &fingerprint,
         &eek,
         &csr,
@@ -216,7 +249,46 @@ pub(crate) async fn provision(
     ))
 }
 
+fn sign_v2(
+    exchange: &dyn Exchange,
+    eek: &EekResponse,
+    key: &duck_rkp::cose::EcKeyPair,
+) -> Result<(Vec<u8>, VerifyReport)> {
+    let request = protocol::build_request(&eek.challenge, &key.cose_public)?;
+    let signed = exchange.csr(&request)?;
+    let csr = protocol::unwrap_csr(&signed)?;
+    let local_verify = protocol::validate_csr(&csr, &eek.challenge, &key.cose_public)?;
+    Ok((csr, local_verify))
+}
+
+fn sign_v1(
+    exchange: &dyn Exchange,
+    eek: &EekResponse,
+    key: &duck_rkp::cose::EcKeyPair,
+) -> Result<(Vec<u8>, VerifyReport)> {
+    if eek.eek_chain.is_empty() {
+        return Err(DeviceRkpError::InvalidCsr(
+            "fetchEekChain did not include an EEK certificate chain".into(),
+        )
+        .into());
+    }
+    let mac_key = crate::protocol_v1::new_mac_key()?;
+    let material = crate::protocol_v1::mac_material(&mac_key, &key.cose_public)?;
+    let request = crate::protocol_v1::build_v1_request(&eek.challenge, &material, &eek.eek_chain)?;
+    let payload = exchange.csr(&request)?;
+    let parts = crate::protocol_v1::parse_v1_response(&payload)?;
+    let local_verify = crate::protocol_v1::v1_report(&parts)?;
+    let csr = crate::protocol_v1::assemble_v1_csr(
+        &parts,
+        &eek.challenge,
+        &key.cose_public,
+        &material.mac_tag,
+    )?;
+    Ok((csr, local_verify))
+}
+
 fn report(
+    version: CsrVersion,
     fingerprint: &str,
     eek: &EekResponse,
     csr: &[u8],
@@ -227,7 +299,9 @@ fn report(
     ProvisionData {
         acknowledged_limitations: true,
         limitations: LIMITATIONS,
-        mode: "device-ta-oracle",
+        mode: version.mode(),
+        csr_version: version.number(),
+        local_signature_checked: version == CsrVersion::V2,
         fingerprint: fingerprint.to_owned(),
         challenge_hex: eek.challenge_hex.clone(),
         csr_len: csr.len(),

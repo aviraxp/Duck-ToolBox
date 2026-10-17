@@ -9,7 +9,7 @@ pub static FEATURE: ClapFeature<Command> = ClapFeature::new(
     FeatureInfo {
         id: "rkp-device",
         summary: "Device-backed RKP issuance on compatible Qualcomm KeyMint firmware",
-        contract: 2,
+        contract: 3,
     },
     dispatch,
 );
@@ -32,6 +32,9 @@ pub enum Command {
         /// Also write `keybox.xml` here. The run directory keeps the private key and the CSR.
         #[arg(long)]
         output: Option<String>,
+        /// `2` is KeyMint CSR_V2 (command `0x3122`). `1` is Keymaster generateCsr (`0x311e`).
+        #[arg(long, default_value_t = 2, value_parser = parse_csr_version)]
+        csr_version: u8,
     },
     /// Private subprocess boundary for vendor code, with its output isolated from JSON stdout.
     #[command(hide = true)]
@@ -39,6 +42,20 @@ pub enum Command {
         #[arg(long)]
         exchange: PathBuf,
     },
+}
+
+fn parse_csr_version(value: &str) -> Result<u8, String> {
+    match value {
+        "1" | "2" => Ok(value.parse().expect("1 and 2 parse as u8")),
+        _ => Err("CSR version must be 1 or 2".to_owned()),
+    }
+}
+
+fn csr_version_of(value: u8) -> service::CsrVersion {
+    match value {
+        1 => service::CsrVersion::V1,
+        _ => service::CsrVersion::V2,
+    }
 }
 
 fn dispatch<'a>(command: Command, ctx: &'a Context) -> BoxFuture<'a, CommandResult> {
@@ -53,10 +70,12 @@ fn dispatch<'a>(command: Command, ctx: &'a Context) -> BoxFuture<'a, CommandResu
                 fingerprint,
                 server_url,
                 output,
+                csr_version,
             } => {
                 let options = service::Options {
                     fingerprint,
                     output: output.map(|path| ctx.paths.resolve_in_root(&path)),
+                    csr_version: csr_version_of(csr_version),
                 };
                 let server = service::Google::new(server_url);
                 match server {

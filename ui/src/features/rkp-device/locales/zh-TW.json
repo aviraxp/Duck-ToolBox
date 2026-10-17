@@ -55,9 +55,15 @@
     "fingerprint": "指紋",
     "challenge": "Challenge",
     "csr": "CSR",
+    "csrVersion": "CSR 版本",
+    "path": "CSR 路徑",
+    "pathV1": "v1 · Keymaster",
+    "pathV2": "v2 · KeyMint",
+    "pathHint": "v1 使用較舊的 Keymaster generateCsr 命令。v2 使用 KeyMint 的 CSR_V2 命令。請選擇這台裝置的可信應用程式能接受的路徑。",
     "localVerify": "本機驗證",
     "valid": "有效",
     "invalid": "無效",
+    "notChecked": "只檢查結構。裝置簽章在加密給伺服器的資料裡，這裡不會驗證。",
     "certificates": "憑證數量",
     "deviceId": "裝置 ID",
     "keybox": "Keybox 檔案",
@@ -71,7 +77,7 @@
   },
   "confirm": {
     "title": "要向 KeyMint TA 傳送請求嗎？",
-    "body": "這會在本機高通 KeyMint 受信任應用程式上執行 CSR_V2，並把結果提交給 Google。此功能僅在部分裝置上可用，且只能簽發 RKP 憑證。匯出的檔案包含私密金鑰，請妥善保管。是否繼續？"
+    "body": "這會把所選 CSR 路徑送給這台裝置的 Qualcomm Keymaster 或 KeyMint 可信應用程式，再把結果提交給 Google。v1 是較舊的 generateCsr 命令，v2 是較新的 KeyMint 命令。此功能只在部分裝置上可用，且只能簽發 RKP 憑證。產生的檔案包含私鑰，請妥善保管。要繼續嗎？"
   },
   "errors": {
     "acknowledgement_required": "尚未確認使用限制。",

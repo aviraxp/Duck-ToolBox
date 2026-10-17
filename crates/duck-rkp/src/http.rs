@@ -21,6 +21,11 @@ pub struct EekResponse {
     #[serde(skip)]
     pub eek_id: Vec<u8>,
     pub eek_curve: i128,
+    /// CBOR certificate array from `fetchEekChain` (COSE_Sign1 entries, root toward leaf).
+    /// CSR v1 sends this to the TA as the endpoint encryption chain. CSR v3 only needs
+    /// [`Self::eek_public`].
+    #[serde(skip)]
+    pub eek_chain: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +33,7 @@ struct SelectedEek {
     public_key: Vec<u8>,
     key_id: Vec<u8>,
     curve: i128,
+    chain: Vec<u8>,
 }
 
 const MAX_RKP_CHALLENGE_LEN: usize = 64;
@@ -151,12 +157,11 @@ fn select_eek_material(chains_value: &Value) -> Result<SelectedEek> {
 }
 
 fn extract_eek_material(chain_entry_items: &[Value], curve: i128) -> Result<SelectedEek> {
-    let chain = as_array(
-        chain_entry_items
-            .get(1)
-            .ok_or_else(|| anyhow!("EEK chain entry missing certificates"))?,
-        "EEK certificate chain",
-    )?;
+    let chain_value = chain_entry_items
+        .get(1)
+        .ok_or_else(|| anyhow!("EEK chain entry missing certificates"))?;
+    let chain = as_array(chain_value, "EEK certificate chain")?;
+    let chain_bytes = encode(chain_value)?;
     let last_cert = chain.last().ok_or_else(|| anyhow!("EEK chain is empty"))?;
     let cert_items = as_array(last_cert, "EEK certificate")?;
     let payload_bytes = as_bytes(
@@ -167,7 +172,9 @@ fn extract_eek_material(chain_entry_items: &[Value], curve: i128) -> Result<Sele
     )?;
     let payload = decode(payload_bytes)?;
     let payload_entries = as_map(&payload, "EEK payload")?;
-    parse_eek_cose_key(payload_entries, curve)
+    let mut selected = parse_eek_cose_key(payload_entries, curve)?;
+    selected.chain = chain_bytes;
+    Ok(selected)
 }
 
 fn parse_eek_cose_key(entries: &[(Value, Value)], eek_curve: i128) -> Result<SelectedEek> {
@@ -203,6 +210,7 @@ fn parse_eek_cose_key(entries: &[(Value, Value)], eek_curve: i128) -> Result<Sel
                 public_key,
                 key_id,
                 curve: eek_curve,
+                chain: Vec::new(),
             })
         }
         RPC_CURVE_P256 => {
@@ -229,6 +237,7 @@ fn parse_eek_cose_key(entries: &[(Value, Value)], eek_curve: i128) -> Result<Sel
                 public_key,
                 key_id,
                 curve: eek_curve,
+                chain: Vec::new(),
             })
         }
         other => Err(anyhow!("unsupported EEK curve {other} in response")),
@@ -286,6 +295,7 @@ fn parse_fetch_eek_response(body: &[u8]) -> Result<EekResponse> {
         eek_public: selected.public_key,
         eek_id: selected.key_id,
         eek_curve: selected.curve,
+        eek_chain: selected.chain,
     })
 }
 

@@ -66,7 +66,7 @@ function deviceStatus(): DeviceStatus {
 }
 
 const mock: MockModule = {
-  feature: { id: "rkp-device", contract: 2 },
+  feature: { id: "rkp-device", contract: 3 },
   handlers: {
     "rkp-device.status": deviceStatus,
     "rkp-device.provision": (_args, flags) => {
@@ -76,10 +76,13 @@ const mock: MockModule = {
       if (flags["acknowledge-limitations"] !== true) {
         throw new Error("acknowledgement is the only way this command runs")
       }
+      const version = flags["csr-version=1"] === true ? 1 : 2
       return {
         acknowledged_limitations: true,
         limitations: status.limitations,
-        mode: "device-ta-oracle",
+        mode: version === 1 ? "device-ta-csr-v1" : "device-ta-oracle",
+        csr_version: version,
+        local_signature_checked: version === 2,
         fingerprint: status.fingerprint,
         challenge_hex: "9f2c1d4b6a8e0f3c5b7d9a1e2f4c6b8d0a2e4f6c8b0d2e4f6a8c0e2f4b6d8a0c",
         csr_len: 1284,
