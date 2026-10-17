@@ -94,6 +94,14 @@ const provisionSchema = z
   .refine((data) => (data.csr_protocol === "v1") === (data.local_verify === null), {
     message: "CSR protocol disagrees with its local verification report",
   })
+  .refine(
+    (data) =>
+      data.local_verify === null ||
+      (data.local_verify.signature_valid &&
+        data.local_verify.cert_type === "keymint" &&
+        data.local_verify.keys_to_sign === 1),
+    { message: "V2 issuance requires one KeyMint key with a valid signature" },
+  )
   .refine((data) => data.csr_backend !== "aidl" || data.csr_protocol === "v1", {
     message: "The AIDL backend only implements V1",
   })
@@ -102,11 +110,15 @@ const provisionSchema = z
       const last = data.attempts.at(-1)
       const expected =
         data.csr_protocol === "v2" ? "v2" : data.csr_backend === "aidl" ? "v1" : "v1-native"
+      const order = { v2: 0, v1: 1, "v1-native": 2 }
       return (
         last?.method === expected &&
         last.error === null &&
         data.attempts.slice(0, -1).every((attempt) => attempt.error !== null) &&
-        new Set(data.attempts.map((attempt) => attempt.method)).size === data.attempts.length
+        data.attempts.every(
+          (attempt, index) =>
+            index === 0 || order[data.attempts[index - 1]!.method] < order[attempt.method],
+        )
       )
     },
     { message: "Attempt history disagrees with the successful issuance method" },
